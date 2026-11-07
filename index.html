@@ -1,0 +1,1743 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ERmes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: barra superiore · strumenti a sinistra · foglio da disegno a puntini · proprietà a destra */
+:root {
+  --bg: #e8ecef;
+  --surface: #ffffff;
+  --surface-2: #f3f5f7;
+  --ink: #16212b;
+  --muted: #5a6775;
+  --rule: #d4dbe1;
+  --accent: #0a7563;
+  --accent-ink: #ffffff;
+  --accent-soft: #d8efea;
+  --danger: #b3261e;
+  --canvas: #f8fafb;
+  --dot: #cdd5dc;
+  --shape: #ffffff;
+  --shape-ink: #1a2530;
+  --select: #0a7563;
+  --warn: #c26a00;
+  --warn-ink: #ffffff;
+  --shadow: 0 1px 2px rgba(16, 28, 36, .06), 0 6px 20px rgba(16, 28, 36, .10);
+  --font-ui: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1316; --surface: #171c20; --surface-2: #1e2429; --ink: #e2e8ec; --muted: #94a1ac;
+    --rule: #2b333a; --accent: #3fc4a9; --accent-ink: #062520; --accent-soft: #15362f; --danger: #ff8a80;
+    --canvas: #12161a; --dot: #283037; --shape: #1b2126; --shape-ink: #dde4e9; --select: #3fc4a9;
+    --warn: #f2a541; --warn-ink: #2a1800;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1316; --surface: #171c20; --surface-2: #1e2429; --ink: #e2e8ec; --muted: #94a1ac;
+  --rule: #2b333a; --accent: #3fc4a9; --accent-ink: #062520; --accent-soft: #15362f; --danger: #ff8a80;
+  --canvas: #12161a; --dot: #283037; --shape: #1b2126; --shape-ink: #dde4e9; --select: #3fc4a9;
+  --warn: #f2a541; --warn-ink: #2a1800;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.45);
+  color-scheme: dark;
+}
+
+[hidden] { display: none !important; }
+html { height: 100%; }
+body {
+  height: 100%; margin: 0; display: grid; grid-template-rows: auto minmax(0, 1fr);
+  background: var(--bg); color: var(--ink); font: 14px/1.45 var(--font-ui); overflow: hidden;
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- barra superiore ---------- */
+.topbar {
+  display: flex; align-items: center; gap: 14px; min-width: 0;
+  padding-block: 8px; padding-left: max(14px, env(safe-area-inset-left, 0px)); padding-right: max(14px, env(safe-area-inset-right, 0px));
+  background: var(--surface); border-bottom: 1px solid var(--rule);
+}
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 0 1 auto; }
+.brand svg { flex: none; }
+.wordmark { font-weight: 600; font-size: 16px; letter-spacing: .01em; flex: none; }
+.brand-sep { width: 1px; height: 20px; background: var(--rule); flex: none; }
+.title-input {
+  border: 1px solid transparent; background: transparent; border-radius: 6px; padding: 4px 8px;
+  font-weight: 600; font-size: 15px; width: 15em; max-width: 34vw; min-width: 6em; text-overflow: ellipsis;
+}
+.title-input:hover { border-color: var(--rule); }
+.title-input:focus { border-color: var(--accent); background: var(--surface-2); outline: none; }
+.tools { display: flex; align-items: center; gap: 6px; margin-left: auto; overflow-x: auto; min-width: 0; scrollbar-width: none; }
+.tools::-webkit-scrollbar { display: none; }
+.group { display: flex; align-items: center; gap: 2px; padding-left: 8px; border-left: 1px solid var(--rule); flex: none; }
+.group:first-child { border-left: 0; padding-left: 0; }
+.group-label { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 4px 0 2px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border-radius: 6px;
+  border: 1px solid transparent; background: transparent; cursor: pointer; white-space: nowrap; font-size: 13.5px;
+}
+.btn:hover:not(:disabled) { background: var(--surface-2); border-color: var(--rule); }
+.btn:disabled { opacity: .38; cursor: default; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); font-weight: 500; }
+.btn.primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); border-color: transparent; }
+.btn.icon { width: 32px; padding: 0; justify-content: center; }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.zoom-val { font: 500 12px var(--font-mono); min-width: 44px; text-align: center; color: var(--muted); font-variant-numeric: tabular-nums; }
+select.compact { height: 32px; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); padding: 0 6px; font-size: 13px; }
+
+/* ---------- corpo ---------- */
+.main { display: grid; grid-template-columns: 84px minmax(0, 1fr) 272px; min-height: 0; }
+.main.panel-off { grid-template-columns: 84px minmax(0, 1fr) 0; }
+.main.panel-off .panel { display: none; }
+#btn-theme .ic-sun { display: none; }
+:root[data-theme="dark"] #btn-theme .ic-sun { display: block; }
+:root[data-theme="dark"] #btn-theme .ic-moon { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) #btn-theme .ic-sun { display: block; }
+  :root:not([data-theme="light"]) #btn-theme .ic-moon { display: none; }
+}
+#btn-panel[aria-pressed="false"] .ic-fill { opacity: 0; }
+.topbar > .end-group { flex: none; margin-left: -6px; }
+/* cambio di tema: i colori sfumano invece di scattare */
+:root.theme-fade, :root.theme-fade *, :root.theme-fade *::before, :root.theme-fade *::after {
+  transition: background-color .5s ease, color .5s ease, border-color .5s ease, fill .5s ease, stroke .5s ease, box-shadow .5s ease !important;
+}
+
+.palette {
+  display: flex; flex-direction: column; gap: 4px; padding: 10px 8px; background: var(--surface);
+  border-right: 1px solid var(--rule); overflow-y: auto; padding-left: max(8px, env(safe-area-inset-left, 0px));
+}
+.palette .sep { height: 1px; background: var(--rule); margin: 6px 4px; flex: none; }
+.tile {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 9px 4px 7px; border-radius: 8px;
+  border: 1px solid transparent; background: transparent; cursor: grab; user-select: none; touch-action: none;
+  font-size: 11.5px; line-height: 1.2; text-align: center; color: var(--ink); flex: none;
+}
+.tile:hover { background: var(--surface-2); border-color: var(--rule); }
+.tile.active { background: var(--accent-soft); border-color: var(--accent); }
+.tile svg { width: 40px; height: 26px; overflow: visible; }
+.tile .k { font: 500 10px var(--font-mono); color: var(--muted); }
+.tile.mode { cursor: pointer; }
+
+.stage {
+  position: relative; overflow: hidden; min-width: 0; touch-action: none; background-color: var(--canvas);
+  background-image: radial-gradient(circle, var(--dot) 1.1px, transparent 1.3px);
+}
+.stage svg#canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; user-select: none; -webkit-user-select: none; }
+.stage.connecting, .stage.connecting * { cursor: crosshair !important; }
+.stage.panning { cursor: grabbing; }
+[data-node] { cursor: move; }
+[data-link] { cursor: pointer; }
+[data-handle] { cursor: crosshair; }
+
+.hint {
+  position: absolute; left: 12px; bottom: 12px; max-width: calc(100% - 24px); padding: 6px 10px; border-radius: 6px;
+  background: var(--surface); border: 1px solid var(--rule); color: var(--muted); font-size: 12.5px; box-shadow: var(--shadow);
+  pointer-events: none;
+}
+.hint strong { color: var(--ink); font-weight: 600; }
+
+.rename {
+  position: absolute; z-index: 5; transform: translate(-50%, -50%); min-width: 120px; padding: 4px 8px;
+  border: 1.5px solid var(--accent); border-radius: 5px; background: var(--surface); text-align: center;
+  font: 600 14px "Helvetica Neue", Helvetica, Arial, sans-serif; box-shadow: var(--shadow);
+}
+.rename:focus { outline: none; }
+
+.menu {
+  position: absolute; z-index: 6; display: flex; flex-direction: column; padding: 4px; min-width: 190px;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; box-shadow: var(--shadow);
+}
+.menu .menu-title { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 6px 10px 4px; }
+.menu button { text-align: left; border: 0; background: transparent; padding: 7px 10px; border-radius: 5px; cursor: pointer; }
+.menu button:hover, .menu button:focus-visible { background: var(--accent-soft); outline: none; }
+
+.ghost {
+  position: fixed; z-index: 20; pointer-events: none; transform: translate(-50%, -50%); opacity: .85;
+}
+
+/* ---------- pannello proprietà ---------- */
+.panel {
+  background: var(--surface); border-left: 1px solid var(--rule); overflow-y: auto; min-width: 0;
+  padding: 14px 16px 18px; padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 14px;
+}
+.panel h2 { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel h3 { margin: 0; font-size: 15px; font-weight: 600; text-wrap: balance; overflow-wrap: anywhere; }
+.panel p { margin: 0; color: var(--muted); font-size: 13px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label, .field > .lbl { font-size: 12px; color: var(--muted); font-weight: 500; }
+.text { height: 34px; border: 1px solid var(--rule); border-radius: 6px; padding: 0 10px; background: var(--surface); min-width: 0; }
+.text:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+.text.mono { font-family: var(--font-mono); font-size: 13px; }
+select.text { padding: 0 6px; }
+.check { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 13.5px; }
+.check input { margin: 3px 0 0; accent-color: var(--accent); width: 15px; height: 15px; flex: none; }
+.check small { display: block; color: var(--muted); font-size: 12px; }
+.chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.chip {
+  height: 32px; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); cursor: pointer;
+  font: 500 12.5px var(--font-mono); font-variant-numeric: tabular-nums;
+}
+.chip:hover { border-color: var(--muted); }
+.chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.seg .chip { font-family: var(--font-ui); font-size: 13px; }
+.part-row { display: grid; grid-template-columns: minmax(0, 1fr) 96px; align-items: center; gap: 8px; }
+.part-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.actions .btn { border-color: var(--rule); }
+.btn.danger { color: var(--danger); }
+.divider { height: 1px; background: var(--rule); flex: none; }
+.help { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.help li { padding-left: 14px; position: relative; color: var(--ink); }
+.help li::before { content: ""; position: absolute; left: 2px; top: .62em; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.keys { display: grid; grid-template-columns: auto 1fr; gap: 5px 10px; font-size: 12.5px; align-items: center; }
+kbd {
+  font: 500 11px var(--font-mono); padding: 2px 5px; border-radius: 4px; border: 1px solid var(--rule);
+  border-bottom-width: 2px; background: var(--surface-2); white-space: nowrap; justify-self: start;
+}
+.stats { font: 500 12px var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.panel p.warn-note { color: var(--ink); font-size: 12.5px; padding: 8px 10px; border-radius: 6px; border-left: 3px solid var(--warn); background: var(--surface-2); }
+.note { font-size: 12px; color: var(--muted); padding: 10px; border-radius: 6px; background: var(--surface-2); }
+
+.toast {
+  position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(8px);
+  z-index: 30; display: flex; align-items: center; gap: 12px; padding: 9px 12px 9px 14px; border-radius: 8px;
+  background: var(--ink); color: var(--surface); font-size: 13px; box-shadow: var(--shadow);
+  opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; max-width: calc(100vw - 32px);
+}
+.toast.show { opacity: 1; transform: translateX(-50%); pointer-events: auto; }
+.toast button { border: 0; background: transparent; color: var(--accent-soft); font-weight: 600; cursor: pointer; padding: 2px 4px; }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+
+/* ---------- schermi stretti ---------- */
+@media (max-width: 1180px) { .group-label { display: none; } .tools { gap: 2px; } }
+@media (max-width: 820px) {
+  .topbar { flex-wrap: wrap; row-gap: 4px; }
+  .brand { flex: 1 1 0; }
+  .title-input { flex: 1; width: auto; max-width: none; }
+  .tools { flex-basis: 100%; margin-left: 0; order: 3; }
+  .topbar > .end-group { margin-left: 0; }
+  .main, .main.panel-off { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .stage { grid-row: 1; grid-column: 1; }
+  .palette {
+    grid-row: 2; flex-direction: row; overflow-x: auto; overflow-y: hidden; border-right: 0; border-top: 1px solid var(--rule);
+    padding: 6px max(8px, env(safe-area-inset-right, 0px)) max(6px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px));
+  }
+  .palette .sep { width: 1px; height: auto; margin: 4px 2px; }
+  .tile { min-width: 70px; }
+  .panel {
+    grid-row: 1; grid-column: 1; align-self: end; position: relative; max-height: 44vh; z-index: 4; border-left: 0;
+    border-top: 1px solid var(--rule); box-shadow: var(--shadow); border-radius: 12px 12px 0 0;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+  }
+  .panel.idle { display: none; }
+  .group-label { display: none; }
+  .title-input { width: 9em; }
+  .hide-narrow { display: none; }
+}
+</style>
+
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg width="30" height="22" viewBox="0 0 30 22" aria-hidden="true">
+      <rect x="1" y="5" width="12" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M22 2 L29 11 L22 20 L15 11 Z" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
+      <path d="M13 11 H15" stroke="currentColor" stroke-width="1.6"/>
+    </svg>
+    <span class="wordmark">ERmes</span>
+    <span class="brand-sep" aria-hidden="true"></span>
+    <input id="doc-title" class="title-input" type="text" aria-label="Titolo dello schema" spellcheck="false">
+  </div>
+  <nav class="tools" aria-label="Comandi">
+    <div class="group">
+      <button class="btn" id="btn-new" title="Nuovo schema">Nuovo</button>
+      <button class="btn" id="btn-open" title="Apri un file .ermes (Ctrl+O)">Apri</button>
+      <button class="btn primary" id="btn-save" title="Salva il lavoro come file .ermes (Ctrl+S)">Salva</button>
+    </div>
+    <div class="group">
+      <span class="group-label">Esporta</span>
+      <button class="btn" id="btn-png" title="Esporta immagine PNG">PNG</button>
+      <button class="btn" id="btn-svg" title="Esporta immagine vettoriale SVG">SVG</button>
+    </div>
+    <div class="group">
+      <button class="btn icon" id="btn-undo" title="Annulla (Ctrl+Z)" aria-label="Annulla">
+        <svg viewBox="0 0 16 16"><path d="M5.5 3.5 2 7l3.5 3.5M2.5 7H10a4 4 0 0 1 0 8H8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="btn icon" id="btn-redo" title="Ripeti (Ctrl+Y)" aria-label="Ripeti">
+        <svg viewBox="0 0 16 16"><path d="M10.5 3.5 14 7l-3.5 3.5M13.5 7H6a4 4 0 0 0 0 8h2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="group">
+      <button class="btn icon" id="btn-zoom-out" title="Riduci" aria-label="Riduci">
+        <svg viewBox="0 0 16 16"><path d="M3 8h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <span class="zoom-val" id="zoom-val">100%</span>
+      <button class="btn icon" id="btn-zoom-in" title="Ingrandisci" aria-label="Ingrandisci">
+        <svg viewBox="0 0 16 16"><path d="M3 8h10M8 3v10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <button class="btn" id="btn-fit" title="Adatta lo schema alla finestra (Ctrl+0)">Adatta</button>
+    </div>
+  </nav>
+  <div class="group end-group">
+      <button class="btn icon" id="btn-theme" type="button" title="Passa al tema scuro" aria-label="Passa al tema scuro">
+        <svg class="ic-moon" viewBox="0 0 16 16"><path d="M13.5 9.6A5.6 5.6 0 0 1 6.4 2.5a5.6 5.6 0 1 0 7.1 7.1Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        <svg class="ic-sun" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <button class="btn icon" id="btn-panel" type="button" title="Nascondi il pannello delle proprietà (P)" aria-label="Pannello delle proprietà" aria-pressed="true" aria-controls="panel">
+        <svg viewBox="0 0 16 16"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 3v10" stroke="currentColor" stroke-width="1.5"/><rect class="ic-fill" x="10" y="3" width="3.6" height="9.6" fill="currentColor" opacity=".35"/></svg>
+      </button>
+  </div>
+  <input type="file" id="file-input" accept=".ermes,.json,application/json" hidden>
+</header>
+
+<div class="main">
+  <aside class="palette" aria-label="Elementi">
+    <div class="tile" data-add="entity" title="Entità — trascina sul foglio o clicca (E)">
+      <svg viewBox="0 0 40 26"><rect x="3" y="4" width="34" height="18" rx="1" fill="var(--shape)" stroke="currentColor" stroke-width="1.5"/></svg>
+      Entità <span class="k">E</span>
+    </div>
+    <div class="tile" data-add="relationship" title="Associazione — con due entità selezionate le collega (S)">
+      <svg viewBox="0 0 40 26"><path d="M20 2 L38 13 L20 24 L2 13 Z" fill="var(--shape)" stroke="currentColor" stroke-width="1.5"/></svg>
+      Associazione <span class="k">S</span>
+    </div>
+    <div class="sep"></div>
+    <div class="tile mode" data-mode="link" title="Collega due elementi: clicca il primo, poi il secondo (C)">
+      <svg viewBox="0 0 40 26"><circle cx="7" cy="13" r="3" fill="currentColor"/><circle cx="33" cy="13" r="3" fill="currentColor"/><path d="M10 13 H30" stroke="currentColor" stroke-width="1.5"/></svg>
+      Collega <span class="k">C</span>
+    </div>
+    <div class="tile mode" data-mode="isa" title="Generalizzazione: clicca l'entità figlia, poi l'entità padre (G)">
+      <svg viewBox="0 0 40 26"><path d="M20 22 V9" stroke="currentColor" stroke-width="1.5"/><path d="M20 3 L25 11 H15 Z" fill="var(--shape)" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      Generaliz&shy;zazione <span class="k">G</span>
+    </div>
+    <div class="sep" id="sep-attr" hidden></div>
+    <div class="tile" id="tile-attr" data-add="attribute" title="Aggiungi un attributo all'elemento selezionato (A)" hidden>
+      <svg viewBox="0 0 40 26"><path d="M6 13 H17" stroke="currentColor" stroke-width="1.5"/><circle cx="22" cy="13" r="5" fill="var(--shape)" stroke="currentColor" stroke-width="1.5"/></svg>
+      Attributo <span class="k">A</span>
+    </div>
+    <div class="tile" id="tile-key" data-add="key" title="Aggiungi un identificatore all'entità selezionata (I)" hidden>
+      <svg viewBox="0 0 40 26"><path d="M6 13 H17" stroke="currentColor" stroke-width="1.5"/><circle cx="22" cy="13" r="5" fill="currentColor" stroke="currentColor" stroke-width="1.5"/></svg>
+      Identificatore <span class="k">I</span>
+    </div>
+  </aside>
+
+  <section class="stage" id="stage" aria-label="Foglio di lavoro">
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
+      <g id="viewport"><g id="world"></g><g id="overlay"></g></g>
+    </svg>
+    <div class="hint" id="hint" hidden></div>
+  </section>
+
+  <aside class="panel" id="panel" aria-label="Proprietà"></aside>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-msg"></span><button id="toast-act" hidden></button></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ================= costanti e stato ================= */
+const NS = 'http://www.w3.org/2000/svg';
+const FONT = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+const MONO = "Menlo, Consolas, 'DejaVu Sans Mono', 'Courier New', monospace";
+const GRID = 10;
+const STORE_KEY = 'ermes:v1';
+const OLD_STORE_KEY = 'modellatore-er:v1';
+const FORMAT = 'ermes';
+const EXT = 'ermes';
+const CARDS = ['(0,1)', '(1,1)', '(0,N)', '(1,N)'];
+
+const $ = s => document.querySelector(s);
+const stage = $('#stage'), svg = $('#canvas'), viewportG = $('#viewport'), worldG = $('#world'), overlayG = $('#overlay');
+const panel = $('#panel'), hintEl = $('#hint');
+
+// warn: evidenzia le entità senza identificatore, solo a schermo (mai nelle immagini esportate)
+const SCREEN = { ink: 'var(--shape-ink)', fill: 'var(--shape)', bg: 'var(--canvas)', sel: 'var(--select)', hit: true, warn: 'var(--warn)', warnInk: 'var(--warn-ink)' };
+const PRINT  = { ink: '#141414', fill: '#ffffff', bg: '#ffffff', sel: '#141414', hit: false, warn: null };
+
+let doc = emptyDoc();
+let view = { x: 0, y: 0, k: 1 };
+let sel = new Set();
+let undoStack = [], redoStack = [];
+let mode = null;          // null | 'link' | 'isa'
+let modeFrom = null;      // id del primo elemento in modalità collega
+let drag = null;
+let hoverTarget = null;
+let renameState = null;
+let menuEl = null;
+let lastTap = null;       // per riconoscere il doppio clic anche se il disegno viene rifatto
+const pointers = new Map();
+
+function emptyDoc() {
+  return { format: FORMAT, version: 1, title: 'Schema senza titolo', style: 'atzeni', nodes: [], links: [] };
+}
+const uid = () => Math.random().toString(36).slice(2, 10);
+const f = v => Math.round(v * 10) / 10;
+const snap = v => Math.round(v / GRID) * GRID;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const nodeById = id => doc.nodes.find(n => n.id === id);
+const linkById = id => doc.links.find(l => l.id === id);
+
+/* ================= misure e geometria ================= */
+const mctx = document.createElement('canvas').getContext('2d');
+function textW(t, size = 14, weight = 400) {
+  mctx.font = `${weight} ${size}px ${FONT}`;
+  return mctx.measureText(t || '').width;
+}
+function attrLabel(n) { return n.name + (n.card ? ' ' + n.card : ''); }
+
+function dims(n) {
+  if (n.kind === 'entity') return { w: Math.max(110, Math.ceil(textW(n.name, 14, 600)) + 40), h: 50 };
+  if (n.kind === 'relationship') return { w: Math.max(124, Math.ceil(textW(n.name, 14, 600)) + 78), h: 72 };
+  return { w: 12, h: 12 };
+}
+
+function boundary(n, tx, ty) {
+  const { w, h } = dims(n);
+  const dx = tx - n.x, dy = ty - n.y;
+  if (!dx && !dy) return { x: n.x, y: n.y };
+  let t;
+  if (n.kind === 'entity') t = Math.min((w / 2) / Math.abs(dx || 1e-9), (h / 2) / Math.abs(dy || 1e-9));
+  else if (n.kind === 'relationship') t = 1 / (Math.abs(dx) / (w / 2) + Math.abs(dy) / (h / 2));
+  else { const a = w / 2, b = h / 2; t = 1 / Math.sqrt((dx * dx) / (a * a) + (dy * dy) / (b * b)); }
+  return { x: n.x + dx * t, y: n.y + dy * t };
+}
+
+function ownerOf(attr) {
+  const l = doc.links.find(l => l.kind === 'attribute' && l.a === attr.id);
+  return l ? nodeById(l.b) : null;
+}
+function labelOnRight(n) {
+  const o = ownerOf(n);
+  if (!o) return true;
+  const dx = n.x - o.x, dy = n.y - o.y;
+  if (Math.abs(dy) > Math.abs(dx) * 1.2) return true;
+  return dx >= 0;
+}
+
+/* riquadro occupato da un nodo (per selezione, esportazione, adattamento) */
+function nodeBox(n) {
+  if (n.kind === 'attribute') {
+    const tw = textW(attrLabel(n), 13);
+    return labelOnRight(n)
+      ? { x1: n.x - 8, y1: n.y - 11, x2: n.x + 14 + tw, y2: n.y + 11 }
+      : { x1: n.x - 14 - tw, y1: n.y - 11, x2: n.x + 8, y2: n.y + 11 };
+  }
+  const { w, h } = dims(n);
+  const extra = (n.kind === 'attribute' && n.card) ? textW(n.card, 12) + 8 : 0;
+  return { x1: n.x - w / 2, y1: n.y - h / 2, x2: n.x + w / 2 + extra, y2: n.y + h / 2 };
+}
+function diagramBox() {
+  if (!doc.nodes.length) return null;
+  let b = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
+  for (const n of doc.nodes) {
+    const r = nodeBox(n);
+    b.x1 = Math.min(b.x1, r.x1); b.y1 = Math.min(b.y1, r.y1);
+    b.x2 = Math.max(b.x2, r.x2); b.y2 = Math.max(b.y2, r.y2);
+  }
+  return b;
+}
+
+/* ================= disegno (schermo ed esportazione) ================= */
+function drawDiagram(P, o = {}) {
+  const s = o.sel || new Set();
+  const byId = Object.fromEntries(doc.nodes.map(n => [n.id, n]));
+  let out = '';
+  const groups = {};
+  for (const l of doc.links) {
+    if (l.kind === 'isa' || !byId[l.a] || !byId[l.b]) continue;
+    const k = [l.a, l.b].sort().join('|');
+    (groups[k] = groups[k] || []).push(l);
+  }
+  const geo = {};
+  for (const k in groups) groups[k].forEach((l, i, arr) => { out += drawLink(l, i, arr.length, byId, P, s, geo); });
+  const isa = isaLayout(byId);
+  out += drawIsa(isa, P, s);
+  const keys = keyGroups();
+  for (const eid in keys) {
+    const kg = keys[eid], E = byId[eid];
+    // un solo attributo: pallino pieno. Più attributi o una partecipazione (identificatore esterno): linea con pallino
+    if (kg.attrs.length + kg.parts.length < 2 && !kg.parts.length) continue;
+    const crossers = [
+      ...kg.attrs.map(a => ({ bp: boundary(E, a.x, a.y), to: a })),
+      ...kg.parts.filter(l => geo[l.id]).map(l => ({ bp: geo[l.id].pA, to: geo[l.id].to }))
+    ];
+    out += drawCompositeKey(E, crossers, P, stubsFor(E, kg, byId, geo, isa));
+  }
+  const order = { relationship: 0, entity: 1, attribute: 2 };
+  [...doc.nodes].sort((a, b) => order[a.kind] - order[b.kind])
+    .forEach(n => { out += drawNode(n, P, s.has(n.id), o.from === n.id, o.hover === n.id, keys); });
+  return out;
+}
+
+/* identificatore di ogni entità: attributi chiave e partecipazioni ad associazioni (identificatore esterno) */
+function keyGroups() {
+  const byId = Object.fromEntries(doc.nodes.map(n => [n.id, n]));
+  const g = {};
+  const grp = id => (g[id] = g[id] || { attrs: [], parts: [] });
+  for (const l of doc.links) {
+    if (l.kind === 'attribute') {
+      const a = byId[l.a], o = byId[l.b];
+      if (a && o && a.key && o.kind === 'entity' && !isChild(o.id)) grp(o.id).attrs.push(a);
+    } else if (l.kind === 'participation' && l.key && byId[l.a] && byId[l.b] && !isChild(l.a)) grp(l.a).parts.push(l);
+  }
+  return g;
+}
+/* figlia in una generalizzazione: eredita l'identificatore dal padre e non può averne uno suo */
+function isChild(entityId) { return doc.links.some(l => l.kind === 'isa' && l.a === entityId); }
+/* toglie l'identificatore a un'entità; restituisce quanti elementi ne facevano parte */
+function clearKeys(entityId) {
+  let n = 0;
+  for (const l of doc.links) {
+    if (l.kind === 'attribute' && l.b === entityId) { const a = nodeById(l.a); if (a && a.key) { a.key = false; n++; } }
+    else if (l.kind === 'participation' && l.a === entityId && l.key) { l.key = false; n++; }
+  }
+  return n;
+}
+/* entità che ha bisogno di un identificatore e non ce l'ha */
+function lacksKey(n, keys) {
+  if (n.kind !== 'entity' || isChild(n.id)) return false;
+  const kg = keys[n.id];
+  return !kg || (!kg.attrs.length && !kg.parts.length);
+}
+function keySize(eid) { const kg = keyGroups()[eid]; return kg ? kg.attrs.length + kg.parts.length : 0; }
+
+/* identificatore composto: linea che interseca i collegamenti degli attributi e termina con un pallino pieno */
+/* La linea corre su un rettangolo allargato attorno all'entità: segmenti dritti, angoli retti.
+   Dove scavalca un collegamento che non fa parte dell'identificatore disegna un piccolo ponte. */
+function drawCompositeKey(E, crossers, P, stubs = []) {
+  if (!E) return '';
+  const M = 14, { w, h } = dims(E);
+  const HW = w / 2 + M, HH = h / 2 + M, W = 2 * HW, H = 2 * HH, L = 2 * (W + H);
+  const x0 = E.x - HW, y0 = E.y - HH;
+  // s = posizione lungo il perimetro, in senso orario dall'angolo in alto a sinistra
+  const at = s => {
+    s = ((s % L) + L) % L;
+    if (s < W) return { x: x0 + s, y: y0 }; s -= W;
+    if (s < H) return { x: x0 + W, y: y0 + s }; s -= H;
+    if (s < W) return { x: x0 + W - s, y: y0 + H }; s -= W;
+    return { x: x0, y: y0 + H - s };
+  };
+  // punto in cui il collegamento che parte da bp verso "to" attraversa il rettangolo allargato
+  const cross = (bp, to) => {
+    let dx = to.x - bp.x, dy = to.y - bp.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 1e-6) return null;
+    dx /= len; dy /= len;
+    const tx = dx > 1e-9 ? (x0 + W - bp.x) / dx : dx < -1e-9 ? (x0 - bp.x) / dx : Infinity;
+    const ty = dy > 1e-9 ? (y0 + H - bp.y) / dy : dy < -1e-9 ? (y0 - bp.y) / dy : Infinity;
+    const t = Math.min(tx, ty), q = { x: bp.x + dx * t, y: bp.y + dy * t };
+    if (tx <= ty) return dx > 0 ? W + (q.y - y0) : 2 * W + H + (y0 + H - q.y);
+    return dy > 0 ? W + H + (x0 + W - q.x) : (q.x - x0);
+  };
+  const ps = crossers.map(c => cross(c.bp, c.to)).filter(v => v != null).sort((a, b) => a - b);
+  const n = ps.length;
+  if (!n) return '';
+  let gapI = n - 1, gap = ps[0] + L - ps[n - 1];
+  for (let i = 0; i < n - 1; i++) if (ps[i + 1] - ps[i] > gap) { gap = ps[i + 1] - ps[i]; gapI = i; }
+  const seq = [];
+  for (let i = 1; i <= n; i++) { let v = ps[(gapI + i) % n]; if (seq.length && v < seq[seq.length - 1]) v += L; seq.push(v); }
+  const R = 5, s0 = seq[0] - 8, s1 = seq[n - 1] + 16;
+  const corners = [];
+  for (const c of [0, W, W + H, 2 * W + H]) for (let k = -1; k <= 2; k++) { const v = c + k * L; if (v > s0 && v < s1) corners.push(v); }
+  const bridges = [];
+  for (const st of stubs) {
+    let q = cross(st.bp, st.to);
+    if (q == null) continue;
+    while (q < s0) q += L;
+    while (q >= s0 + L) q -= L;
+    if (q - R <= s0 + 1 || q + R >= s1 - 1) continue;
+    if (corners.some(c => Math.abs(c - q) < R + 1)) continue;
+    if (bridges.some(b => Math.abs(b - q) < 2 * R + 2)) continue;
+    if (seq.some(v => Math.abs(v - q) < R + 2)) continue;
+    bridges.push(q);
+  }
+  const ev = [...corners.map(v => ({ v, c: true })), ...bridges.map(v => ({ v, c: false }))].sort((a, b) => a.v - b.v);
+  const pt = s => { const p = at(s); return `${f(p.x)} ${f(p.y)}`; };
+  let d = `M${pt(s0)}`;
+  for (const e of ev) d += e.c ? `L${pt(e.v)}` : `L${pt(e.v - R)}A${R} ${R} 0 0 1 ${pt(e.v + R)}`;
+  d += `L${pt(s1)}`;
+  const tip = at(s1);
+  return `<path d="${d}" style="fill:none;stroke:${P.ink};stroke-width:1.5;stroke-linejoin:miter"/>`
+    + `<circle cx="${f(tip.x)}" cy="${f(tip.y)}" r="4.5" style="fill:${P.ink};stroke:${P.ink};stroke-width:1"/>`;
+}
+
+/* collegamenti che partono dall'entità e non fanno parte dell'identificatore (servono per i ponti) */
+function stubsFor(E, kg, byId, geo, layout) {
+  if (!E) return [];
+  const keyIds = new Set(kg.attrs.map(a => a.id));
+  const st = [];
+  for (const l of doc.links) {
+    if (l.kind === 'attribute' && l.b === E.id && !keyIds.has(l.a)) { const a = byId[l.a]; if (a) st.push({ bp: boundary(E, a.x, a.y), to: a }); }
+    else if (l.kind === 'participation' && l.a === E.id && !l.key && geo[l.id]) st.push({ bp: geo[l.id].pA, to: geo[l.id].to });
+  }
+  for (const G of layout) {
+    if (G.P.id === E.id) st.push({ bp: G.T, to: G.J });
+    for (const k of G.kids) if (k.C.id === E.id) st.push({ bp: k.E, to: { [G.cx]: k.C[G.cx], [G.ax]: G.bus } });
+  }
+  return st;
+}
+
+function hitPath(d, P) { return P.hit ? `<path d="${d}" style="fill:none;stroke:transparent;stroke-width:14"/>` : ''; }
+
+function drawLink(l, i, cnt, byId, P, s, geo) {
+  const A = byId[l.a], B = byId[l.b];
+  const [p, q] = l.a < l.b ? [A, B] : [B, A];
+  const off = (i - (cnt - 1) / 2) * 46;
+  let d, pA, pB, ctrl = null;
+  if (off === 0) {
+    pA = boundary(A, B.x, B.y); pB = boundary(B, A.x, A.y);
+    d = `M${f(pA.x)} ${f(pA.y)}L${f(pB.x)} ${f(pB.y)}`;
+  } else {
+    const dx = q.x - p.x, dy = q.y - p.y, L = Math.hypot(dx, dy) || 1;
+    const nx = -dy / L, ny = dx / L, mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+    ctrl = { x: mx + nx * off * 2, y: my + ny * off * 2 };
+    pA = boundary(A, ctrl.x, ctrl.y); pB = boundary(B, ctrl.x, ctrl.y);
+    d = `M${f(pA.x)} ${f(pA.y)}Q${f(ctrl.x)} ${f(ctrl.y)} ${f(pB.x)} ${f(pB.y)}`;
+  }
+  const on = s.has(l.id), col = on ? P.sel : P.ink;
+  if (geo) geo[l.id] = { pA, to: ctrl || pB };
+  let g = `<g data-link="${l.id}">${hitPath(d, P)}<path d="${d}" style="fill:none;stroke:${col};stroke-width:${on ? 2.4 : 1.5}"/>`;
+  if (l.kind === 'participation' && l.card) {
+    const tw = ctrl || pB;
+    const dx = tw.x - pA.x, dy = tw.y - pA.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+    // se la partecipazione fa parte dell'identificatore, l'etichetta va oltre la linea dell'identificatore
+    const side = off < 0 ? -1 : 1, dist = l.key ? Math.min(50, L * 0.45) : Math.min(28, L * 0.4);
+    const lx = pA.x + ux * dist - uy * 14 * side, ly = pA.y + uy * dist + ux * 14 * side;
+    g += `<text x="${f(lx)}" y="${f(ly + 4)}" text-anchor="middle" style="font:500 12px ${MONO};fill:${col};paint-order:stroke;stroke:${P.bg};stroke-width:4px;stroke-linejoin:round">${esc(l.card)}</text>`;
+  }
+  return g + '</g>';
+}
+
+function arrowHead(F, T, filled, col, P) {
+  const dx = T.x - F.x, dy = T.y - F.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+  const bx = T.x - ux * 14, by = T.y - uy * 14, px = -uy * 7.5, py = ux * 7.5;
+  return {
+    base: { x: bx, y: by },
+    svg: `<path d="M${f(T.x)} ${f(T.y)}L${f(bx + px)} ${f(by + py)}L${f(bx - px)} ${f(by - py)}Z" style="fill:${filled ? col : P.fill};stroke:${col};stroke-width:1.5;stroke-linejoin:round"/>`
+  };
+}
+
+/* generalizzazioni con linee ad angolo retto: tronco dal padre, barra comune, discese verso le figlie */
+function isaLayout(byId) {
+  const byParent = {};
+  for (const l of doc.links) if (l.kind === 'isa' && byId[l.a] && byId[l.b]) (byParent[l.b] = byParent[l.b] || []).push(l);
+  const out = [];
+  for (const pid in byParent) {
+    const Pn = byId[pid], ls = byParent[pid];
+    const kids0 = ls.map(l => ({ l, C: byId[l.a] }));
+    let gx = 0, gy = 0;
+    kids0.forEach(k => { gx += k.C.x; gy += k.C.y; });
+    gx /= kids0.length; gy /= kids0.length;
+    const vert = Math.abs(gy - Pn.y) >= Math.abs(gx - Pn.x);
+    const ax = vert ? 'y' : 'x', cx = vert ? 'x' : 'y';
+    const half = n => { const d = dims(n); return vert ? d.h / 2 : d.w / 2; };
+    const sg = ((vert ? gy - Pn.y : gx - Pn.x) >= 0) ? 1 : -1;
+    const T = { [cx]: Pn[cx], [ax]: Pn[ax] + sg * half(Pn) };
+    const kids = kids0.map(k => ({ ...k, E: { [cx]: k.C[cx], [ax]: k.C[ax] - sg * half(k.C) } }));
+    const edges = kids.map(k => k.E[ax]);
+    const near = sg > 0 ? Math.min(...edges) : Math.max(...edges);
+    let bus = snap((T[ax] + near) / 2);
+    if (sg * (bus - T[ax]) < 30) bus = T[ax] + sg * 30;
+    const J = { [cx]: Pn[cx], [ax]: bus };
+    out.push({ P: Pn, ls, kids, vert, s: sg, T, J, bus, ax, cx, total: !!Pn.genTotal, excl: Pn.genExclusive !== false });
+  }
+  return out;
+}
+
+function drawIsa(layout, P, s) {
+  let out = '';
+  for (const G of layout) {
+    const anyOn = G.ls.some(l => s.has(l.id));
+    for (const k of G.kids) {
+      const on = s.has(k.l.id), col = on ? P.sel : P.ink;
+      const B = { [G.cx]: k.C[G.cx], [G.ax]: G.bus };
+      const d = `M${f(k.E.x)} ${f(k.E.y)}L${f(B.x)} ${f(B.y)}L${f(G.J.x)} ${f(G.J.y)}`;
+      out += `<g data-link="${k.l.id}">${hitPath(d, P)}<path d="${d}" style="fill:none;stroke:${col};stroke-width:${on ? 2.4 : 1.5}"/></g>`;
+    }
+    const col = anyOn ? P.sel : P.ink;
+    const a = arrowHead(G.J, G.T, G.total, col, P);
+    const d = `M${f(G.J.x)} ${f(G.J.y)}L${f(a.base.x)} ${f(a.base.y)}`;
+    const lbl = `(${G.total ? 'T' : 'P'},${G.excl ? 'E' : 'S'})`;
+    let lx, ly, anchor;
+    if (G.vert) { lx = G.T.x + 12; ly = (G.T.y + G.J.y) / 2 + 4; anchor = 'start'; }
+    else { lx = (G.T.x + G.J.x) / 2; ly = G.T.y - 12; anchor = 'middle'; }
+    out += `<g data-link="${G.ls[0].id}">${hitPath(`M${f(G.J.x)} ${f(G.J.y)}L${f(G.T.x)} ${f(G.T.y)}`, P)}`
+      + `<path d="${d}" style="fill:none;stroke:${col};stroke-width:${anyOn ? 2.4 : 1.5}"/>${a.svg}`
+      + `<text x="${f(lx)}" y="${f(ly)}" text-anchor="${anchor}" style="font:500 12px ${MONO};fill:${col};paint-order:stroke;stroke:${P.bg};stroke-width:4px">${lbl}</text></g>`;
+  }
+  return out;
+}
+
+function drawNode(n, P, isSel, isFrom, isHover, keys = {}) {
+  const { w, h } = dims(n), x = n.x, y = n.y, ink = P.ink;
+  const st = `fill:${P.fill};stroke:${ink};stroke-width:1.6`;
+  const label = (t, size, weight) =>
+    `<text x="${f(x)}" y="${f(y + size * 0.36)}" text-anchor="middle" style="font:${weight} ${size}px ${FONT};fill:${ink}">${esc(t)}</text>`;
+  let g = `<g data-node="${n.id}">`;
+  if (n.kind === 'entity') {
+    const warn = !!P.warn && lacksKey(n, keys);
+    g += `<rect x="${f(x - w / 2)}" y="${f(y - h / 2)}" width="${f(w)}" height="${h}" style="${warn ? `fill:${P.fill};stroke:${P.warn};stroke-width:2` : st}"/>`;
+    g += label(n.name, 14, 600);
+    if (warn) {
+      const bx = x + w / 2, by = y - h / 2;
+      g += `<g><title>Entità senza identificatore</title><circle cx="${f(bx)}" cy="${f(by)}" r="8" style="fill:${P.warn};stroke:${P.bg};stroke-width:2"/>`
+        + `<text x="${f(bx)}" y="${f(by + 4)}" text-anchor="middle" style="font:700 11px ${FONT};fill:${P.warnInk}">!</text></g>`;
+    }
+  } else if (n.kind === 'relationship') {
+    const dia = (hw, hh) => `M${f(x)} ${f(y - hh)}L${f(x + hw)} ${f(y)}L${f(x)} ${f(y + hh)}L${f(x - hw)} ${f(y)}Z`;
+    g += `<path d="${dia(w / 2, h / 2)}" style="${st};stroke-linejoin:round"/>`;
+    g += label(n.name, 14, 600);
+  } else {
+    const right = labelOnRight(n), t = attrLabel(n);
+    if (P.hit) { const b = nodeBox(n); g += `<rect x="${f(b.x1)}" y="${f(b.y1)}" width="${f(b.x2 - b.x1)}" height="${f(b.y2 - b.y1)}" style="fill:transparent"/>`; }
+    const o = n.key ? ownerOf(n) : null, kg = o ? keys[o.id] : null;
+    const filled = !!(o && o.kind === 'entity' && kg && kg.attrs.length === 1 && !kg.parts.length);
+    g += `<circle cx="${f(x)}" cy="${f(y)}" r="6" style="fill:${filled ? ink : P.fill};stroke:${ink};stroke-width:1.5"/>`;
+    g += `<text x="${f(right ? x + 11 : x - 11)}" y="${f(y + 4.6)}" text-anchor="${right ? 'start' : 'end'}" style="font:400 13px ${FONT};fill:${ink};paint-order:stroke;stroke:${P.bg};stroke-width:3px;stroke-linejoin:round">${esc(t)}</text>`;
+  }
+  if (isSel || isFrom || isHover) {
+    const b = nodeBox(n), pad = 6;
+    g += `<rect x="${f(b.x1 - pad)}" y="${f(b.y1 - pad)}" width="${f(b.x2 - b.x1 + pad * 2)}" height="${f(b.y2 - b.y1 + pad * 2)}" rx="6" style="fill:none;stroke:${P.sel};stroke-width:1.5;${isSel && !isFrom ? 'stroke-dasharray:5 4' : ''}"/>`;
+  }
+  return g + '</g>';
+}
+
+/* ================= render ================= */
+let rafId = 0;
+function schedule() { if (!rafId) rafId = requestAnimationFrame(() => { rafId = 0; render(); }); }
+
+function render(withPanel = false) {
+  viewportG.setAttribute('transform', `translate(${f(view.x)} ${f(view.y)}) scale(${view.k})`);
+  const g = 20 * view.k;
+  stage.style.backgroundSize = `${g}px ${g}px`;
+  stage.style.backgroundPosition = `${view.x}px ${view.y}px`;
+  worldG.innerHTML = drawDiagram(SCREEN, { sel, from: modeFrom, hover: hoverTarget });
+  overlayG.innerHTML = drawOverlay();
+  $('#zoom-val').textContent = Math.round(view.k * 100) + '%';
+  $('#btn-undo').disabled = !undoStack.length;
+  $('#btn-redo').disabled = !redoStack.length;
+  if (document.activeElement !== $('#doc-title')) $('#doc-title').value = doc.title;
+  updatePalette();
+  document.querySelectorAll('.tile[data-mode]').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+  stage.classList.toggle('connecting', !!mode || (drag && drag.type === 'link'));
+  updateHint();
+  if (withPanel) renderPanel();
+}
+
+function drawOverlay() {
+  const k = view.k;
+  let out = '';
+  if (drag && drag.type === 'band') {
+    const x = Math.min(drag.p0.x, drag.p1.x), y = Math.min(drag.p0.y, drag.p1.y);
+    out += `<rect x="${x}" y="${y}" width="${Math.abs(drag.p1.x - drag.p0.x)}" height="${Math.abs(drag.p1.y - drag.p0.y)}" style="fill:var(--accent-soft);fill-opacity:.5;stroke:var(--select);stroke-width:${1 / k};stroke-dasharray:${4 / k} ${3 / k}"/>`;
+  }
+  if (drag && drag.type === 'link' && drag.cur) {
+    const n = nodeById(drag.from);
+    if (n) {
+      const s = boundary(n, drag.cur.x, drag.cur.y);
+      out += `<path d="M${f(s.x)} ${f(s.y)}L${f(drag.cur.x)} ${f(drag.cur.y)}" style="stroke:var(--select);stroke-width:${1.6 / k};stroke-dasharray:${5 / k} ${4 / k};fill:none"/>`;
+    }
+  }
+  if (!mode && sel.size === 1 && (!drag || drag.type !== 'move' || !drag.moved)) {
+    const n = nodeById([...sel][0]);
+    if (n && n.kind !== 'attribute') {
+      const { w, h } = dims(n), gap = 18 / k, r = 9 / k, a = 4 / k;
+      const spots = [[n.x, n.y - h / 2 - gap], [n.x + w / 2 + gap, n.y], [n.x, n.y + h / 2 + gap], [n.x - w / 2 - gap, n.y]];
+      for (const [hx, hy] of spots) {
+        out += `<g data-handle="${n.id}"><circle cx="${f(hx)}" cy="${f(hy)}" r="${r}" style="fill:var(--select);stroke:var(--surface);stroke-width:${2 / k}"/>`
+          + `<path d="M${f(hx - a)} ${f(hy)}H${f(hx + a)}M${f(hx)} ${f(hy - a)}V${f(hy + a)}" style="stroke:var(--accent-ink);stroke-width:${1.6 / k};stroke-linecap:round"/>`
+          + `<title>Trascina per collegare</title></g>`;
+      }
+    }
+  }
+  return out;
+}
+
+/* attributo e identificatore compaiono solo quando servono */
+function selectedSingle() { return sel.size === 1 ? nodeById([...sel][0]) || null : null; }
+/* elementi selezionati che possono formare l'identificatore di una sola entità:
+   i suoi attributi e le sue partecipazioni ad associazioni (identificatore esterno) */
+function selectedKeyItems() {
+  const items = [...sel].map(id => nodeById(id) || linkById(id));
+  if (!items.length || items.some(x => !x)) return null;
+  let owner = null;
+  for (const x of items) {
+    // una partecipazione entra nell'identificatore esterno solo se ha già cardinalità (1,1)
+    if (x.kind === 'participation' && x.card !== '(1,1)') return null;
+    const o = x.kind === 'attribute' ? ownerOf(x) : x.kind === 'participation' ? nodeById(x.a) : null;
+    if (!o || o.kind !== 'entity' || isChild(o.id) || (owner && o.id !== owner.id)) return null;
+    owner = o;
+  }
+  return { owner, items };
+}
+function updatePalette() {
+  const one = selectedSingle();
+  const showAttr = !!one && (one.kind === 'entity' || one.kind === 'relationship');
+  const ki = selectedKeyItems();
+  const showKey = (!!one && one.kind === 'entity' && !isChild(one.id)) || !!ki;
+  const tk = $('#tile-key');
+  $('#tile-attr').hidden = !showAttr;
+  tk.hidden = !showKey;
+  $('#sep-attr').hidden = !(showAttr || showKey);
+  const allKey = !!ki && ki.items.every(x => x.key);
+  const ext = !!ki && ki.items.some(x => x.kind === 'participation');
+  tk.classList.toggle('active', allKey);
+  tk.title = !ki ? "Aggiungi un identificatore all'entità selezionata (I)"
+    : allKey ? "Togli gli elementi selezionati dall'identificatore (I)"
+    : ext ? `Forma l'identificatore esterno di "${ki.owner.name}" (I)`
+    : ki.items.length > 1 ? `Forma un identificatore composto dai ${ki.items.length} attributi selezionati (I)`
+    : "Rendi l'attributo selezionato un identificatore (I)";
+}
+function toggleKeys(ki) {
+  const { owner, items } = ki;
+  const allKey = items.every(x => x.key);
+  mutate(() => {
+    if (allKey) { items.forEach(x => { x.key = false; }); return; }
+    if (items.length === 1) items[0].key = true;
+    else {
+      // l'identificatore diventa esattamente l'insieme degli elementi selezionati
+      const ids = new Set(items.map(x => x.id));
+      for (const l of doc.links) {
+        if (l.kind === 'attribute' && l.b === owner.id) { const a = nodeById(l.a); if (a) a.key = ids.has(a.id); }
+        else if (l.kind === 'participation' && l.a === owner.id) l.key = ids.has(l.id);
+      }
+    }
+  });
+  if (allKey) return;
+  const kg = keyGroups()[owner.id] || { attrs: [], parts: [] };
+  let msg = kg.parts.length ? `Identificatore esterno di "${owner.name}".`
+    : kg.attrs.length > 1 ? `Identificatore composto da ${kg.attrs.length} attributi di "${owner.name}".` : '';
+  if (msg) toast(msg.trim());
+}
+/* cambio di cardinalità: un identificatore esterno vale solo con (1,1) */
+function setCard(l, c) {
+  const drop = l.key && c !== '(1,1)';
+  mutate(() => { l.card = c; if (drop) l.key = false; });
+  if (drop) toast(`Con ${c} la partecipazione non può far parte dell'identificatore: l'ho tolta.`);
+}
+
+function updateHint() {
+  let h = '';
+  if (mode === 'link') h = modeFrom ? `Ora clicca il <strong>secondo elemento</strong> da collegare. Clic sul vuoto per uscire.` : `Modalità collega: clicca il <strong>primo elemento</strong>. Clic sul vuoto per uscire.`;
+  else if (mode === 'isa') h = modeFrom ? `Ora clicca l'<strong>entità padre</strong>. Clic sul vuoto per uscire.` : `Generalizzazione: clicca l'<strong>entità figlia</strong>. Clic sul vuoto per uscire.`;
+  else if (drag && drag.type === 'link') h = `Rilascia su un elemento per collegarlo, oppure sul foglio vuoto per crearne uno nuovo.`;
+  else if (!doc.nodes.length) h = `Trascina un'<strong>entità</strong> dalla barra degli elementi, o fai doppio clic sul foglio.`;
+  hintEl.innerHTML = h;
+  hintEl.hidden = !h;
+}
+
+/* ================= storico e salvataggio locale ================= */
+const snapshot = () => JSON.stringify(doc);
+function persist() { try { localStorage.setItem(STORE_KEY, snapshot()); } catch (e) { /* archiviazione non disponibile */ } }
+function pushUndo(before) {
+  undoStack.push(before);
+  if (undoStack.length > 200) undoStack.shift();
+  redoStack = [];
+  persist();
+}
+function mutate(fn, panelToo = true) {
+  const before = snapshot();
+  fn();
+  if (snapshot() !== before) pushUndo(before);
+  render(panelToo);
+}
+function cleanSel() {
+  sel = new Set([...sel].filter(id => nodeById(id) || linkById(id)));
+  if (modeFrom && !nodeById(modeFrom)) modeFrom = null;
+}
+function undo() {
+  if (!undoStack.length) return;
+  redoStack.push(snapshot()); doc = JSON.parse(undoStack.pop());
+  cleanSel(); persist(); render(true);
+}
+function redo() {
+  if (!redoStack.length) return;
+  undoStack.push(snapshot()); doc = JSON.parse(redoStack.pop());
+  cleanSel(); persist(); render(true);
+}
+
+/* ================= operazioni sul modello ================= */
+function defaultName(kind) {
+  const base = { entity: 'Entità', relationship: 'Associazione', attribute: 'attributo' }[kind];
+  const names = new Set(doc.nodes.map(n => n.name));
+  if (!names.has(base)) return base;
+  let i = 2; while (names.has(`${base} ${i}`)) i++;
+  return `${base} ${i}`;
+}
+function addNode(kind, x, y, extra = {}) {
+  const n = { id: uid(), kind, x: snap(x), y: snap(y), name: defaultName(kind), ...extra };
+  doc.nodes.push(n);
+  return n;
+}
+function freeSpotAround(owner) {
+  const { w, h } = dims(owner);
+  const rx = w / 2 + 46, ry = h / 2 + 40;
+  const angles = [-90, -55, -125, -25, -155, 90, 55, 125, 25, 155, 0, 180, -72, -108, 72, 108];
+  for (let ring = 0; ring < 3; ring++) {
+    for (const a of angles) {
+      const r = a * Math.PI / 180;
+      const x = snap(owner.x + Math.cos(r) * (rx + ring * 40)), y = snap(owner.y + Math.sin(r) * (ry + ring * 30));
+      if (!doc.nodes.some(n => Math.hypot(n.x - x, n.y - y) < 34)) return { x, y };
+    }
+  }
+  return { x: owner.x + rx, y: owner.y - ry };
+}
+function freeSpotNear(x, y) {
+  for (let i = 0; i < 30; i++) {
+    const cx = snap(x + (i % 6) * 30), cy = snap(y + Math.floor(i / 6) * 30) + (i % 6) * 10;
+    if (!doc.nodes.some(n => Math.hypot(n.x - cx, n.y - cy) < 40)) return { x: cx, y: cy };
+  }
+  return { x, y };
+}
+function viewCenter() {
+  const r = stage.getBoundingClientRect();
+  return { x: (r.width / 2 - view.x) / view.k, y: (r.height / 2 - view.y) / view.k };
+}
+
+/* restituisce {link} oppure {error} */
+function buildLink(s, t) {
+  if (!s || !t) return { error: 'Elemento non trovato.' };
+  if (s.id === t.id) return { error: 'Non puoi collegare un elemento a se stesso.' };
+  const has = (a, b, kind) => doc.links.some(l => l.kind === kind && ((l.a === a && l.b === b) || (l.a === b && l.b === a)));
+  if (s.kind === 'attribute' || t.kind === 'attribute') {
+    if (s.kind === 'attribute' && t.kind === 'attribute') return { error: "Un attributo si collega solo a un'entità o a un'associazione." };
+    const attr = s.kind === 'attribute' ? s : t, owner = attr === s ? t : s;
+    const o = ownerOf(attr);
+    if (o) return { error: `L'attributo "${attr.name}" appartiene già a "${o.name}".` };
+    return { link: { id: uid(), kind: 'attribute', a: attr.id, b: owner.id } };
+  }
+  if (s.kind === 'relationship' && t.kind === 'relationship')
+    return { error: "Due associazioni non si collegano direttamente: inserisci un'entità tra le due." };
+  if (s.kind === 'entity' && t.kind === 'entity') {
+    if (has(s.id, t.id, 'isa')) return { error: 'Queste due entità sono già in una generalizzazione.' };
+    return { link: { id: uid(), kind: 'isa', a: s.id, b: t.id } };
+  }
+  const ent = s.kind === 'entity' ? s : t, rel = ent === s ? t : s;
+  return { link: { id: uid(), kind: 'participation', a: ent.id, b: rel.id, card: '(0,N)' } };
+}
+function connect(sId, tId, forceIsa = false) {
+  const s = nodeById(sId), t = nodeById(tId);
+  if (forceIsa && (s?.kind !== 'entity' || t?.kind !== 'entity')) { toast('La generalizzazione collega due entità: prima la figlia, poi il padre.'); return false; }
+  const r = buildLink(s, t);
+  if (r.error) { toast(r.error); return false; }
+  let removed = 0;
+  mutate(() => {
+    doc.links.push(r.link);
+    if (r.link.kind === 'isa') removed = clearKeys(r.link.a);
+    sel = new Set([r.link.kind === 'attribute' ? r.link.a : r.link.id]);
+  });
+  if (r.link.kind === 'isa') {
+    toast(removed
+      ? `"${s.name}" è ora una specializzazione di "${t.name}". Ho tolto il suo identificatore: lo eredita da "${t.name}".`
+      : `"${s.name}" è ora una specializzazione di "${t.name}".`, removed ? 'Annulla' : undefined, removed ? undo : undefined);
+  }
+  return true;
+}
+function deleteSelection() {
+  if (!sel.size) return;
+  mutate(() => {
+    const kill = new Set();
+    const addAttrs = id => {
+      for (const l of doc.links) if (l.kind === 'attribute' && l.b === id && !kill.has(l.a)) { kill.add(l.a); addAttrs(l.a); }
+    };
+    for (const id of sel) if (nodeById(id)) { kill.add(id); addAttrs(id); }
+    doc.nodes = doc.nodes.filter(n => !kill.has(n.id));
+    doc.links = doc.links.filter(l => !sel.has(l.id) && !kill.has(l.a) && !kill.has(l.b));
+    sel = new Set();
+  });
+}
+function duplicateSelection() {
+  const picked = [...sel].filter(id => nodeById(id));
+  if (!picked.length) return;
+  const ids = [...new Set([...picked, ...attachedAttrs(picked.filter(id => nodeById(id).kind !== 'attribute'))])];
+  mutate(() => {
+    const map = {};
+    for (const id of ids) {
+      const n = nodeById(id), c = { ...n, id: uid(), x: n.x + 40, y: n.y + 40 };
+      map[id] = c.id; doc.nodes.push(c);
+    }
+    for (const l of [...doc.links]) {
+      if (map[l.a] && map[l.b]) doc.links.push({ ...l, id: uid(), a: map[l.a], b: map[l.b] });
+      else if (l.kind === 'attribute' && map[l.a]) doc.links.push({ ...l, id: uid(), a: map[l.a] });
+    }
+    sel = new Set(picked.map(id => map[id]));
+  });
+}
+
+/* aggiunta dalla barra degli elementi */
+function addFromPalette(kind, at, dropTarget) {
+  const isKey = kind === 'key';
+  const k = isKey ? 'attribute' : kind;
+  const one = selectedSingle();
+  let owner = null;
+  if (k === 'attribute') {
+    // un attributo selezionato + Identificatore: lo rende (o non lo rende più) identificatore
+    const ki = selectedKeyItems();
+    if (isKey && !dropTarget && ki) { toggleKeys(ki); return; }
+    if (isKey && !dropTarget && [...sel].some(id => nodeById(id)?.kind === 'attribute' || linkById(id))) {
+      toast("Per un identificatore seleziona attributi della stessa entità e, per l'identificatore esterno, collegamenti con cardinalità (1,1)."); return;
+    }
+    owner = dropTarget ? (dropTarget.kind === 'attribute' ? ownerOf(dropTarget) : dropTarget) : null;
+    if (!owner && one && one.kind !== 'attribute') owner = one;
+    if (!owner) { toast("Seleziona prima l'entità o l'associazione a cui aggiungere l'attributo."); return; }
+    if (isKey && owner.kind !== 'entity') { toast('Le associazioni non hanno identificatori.'); return; }
+    if (isKey && isChild(owner.id)) { toast(`"${owner.name}" è un'entità figlia: eredita l'identificatore dal padre.`); return; }
+  }
+  let created = null;
+  mutate(() => {
+    const selNodes = [...sel].map(nodeById).filter(Boolean);
+    if (k === 'attribute') {
+      const p = (at && !dropTarget) ? at : freeSpotAround(owner);
+      created = addNode('attribute', p.x, p.y, { key: isKey, card: '' });
+      if (isKey) created.name = 'codice';
+      doc.links.push({ id: uid(), kind: 'attribute', a: created.id, b: owner.id });
+    } else if (k === 'relationship' && !at && selNodes.length === 2 && selNodes.every(n => n.kind === 'entity')) {
+      const [a, b] = selNodes;
+      created = addNode('relationship', (a.x + b.x) / 2, (a.y + b.y) / 2);
+      if (Math.hypot(a.x - b.x, a.y - b.y) < 260) created.y = snap(created.y + 90);
+      doc.links.push({ id: uid(), kind: 'participation', a: a.id, b: created.id, card: '(0,N)' });
+      doc.links.push({ id: uid(), kind: 'participation', a: b.id, b: created.id, card: '(0,N)' });
+    } else {
+      const c = viewCenter();
+      const p = at || freeSpotNear(c.x, c.y);
+      created = addNode(k, p.x, p.y, {});
+    }
+    sel = new Set([created.id]);
+  });
+  if (created) startRename(created.id, true);
+}
+
+/* ================= coordinate ================= */
+function toWorld(e) {
+  const r = svg.getBoundingClientRect();
+  return { x: (e.clientX - r.left - view.x) / view.k, y: (e.clientY - r.top - view.y) / view.k };
+}
+function zoomAt(k2, sx, sy) {
+  k2 = Math.min(3, Math.max(0.2, k2));
+  const wx = (sx - view.x) / view.k, wy = (sy - view.y) / view.k;
+  view.k = k2; view.x = sx - wx * k2; view.y = sy - wy * k2;
+  closeMenu(); commitRename(); schedule();
+}
+function fitView() {
+  const b = diagramBox(), r = stage.getBoundingClientRect();
+  if (!b) { view = { x: r.width / 2, y: r.height / 2, k: 1 }; render(); return; }
+  const pad = 60, bw = b.x2 - b.x1, bh = b.y2 - b.y1;
+  const k = Math.min(1.4, Math.max(0.2, Math.min((r.width - pad * 2) / bw, (r.height - pad * 2) / bh)));
+  view = { k, x: r.width / 2 - (b.x1 + bw / 2) * k, y: r.height / 2 - (b.y1 + bh / 2) * k };
+  render();
+}
+
+/* ================= interazione sul foglio ================= */
+const nodeAt = (cx, cy) => document.elementFromPoint(cx, cy)?.closest?.('[data-node]')?.dataset.node || null;
+
+function attachedAttrs(ids) {
+  const out = new Set();
+  const walk = id => { for (const l of doc.links) if (l.kind === 'attribute' && l.b === id && !out.has(l.a)) { out.add(l.a); walk(l.a); } };
+  ids.forEach(walk);
+  return out;
+}
+
+function handleModeClick(id) {
+  const n = nodeById(id);
+  if (!modeFrom) {
+    if (mode === 'isa' && n.kind !== 'entity') { toast("Scegli un'entità come figlia."); return; }
+    if (n.kind === 'attribute' && ownerOf(n)) { toast("Gli attributi sono già collegati al loro elemento."); return; }
+    modeFrom = id; render(); return;
+  }
+  if (modeFrom === id) { modeFrom = null; render(); return; }
+  const ok = connect(modeFrom, id, mode === 'isa');
+  if (ok) { modeFrom = null; setMode(null); } else render();
+}
+
+svg.addEventListener('pointerdown', e => {
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pointers.size === 2 && drag && (drag.type === 'pan' || drag.type === 'move')) {
+    if (drag.type === 'move' && drag.moved) { doc = JSON.parse(drag.before); }
+    const [a, b] = [...pointers.values()];
+    drag = { type: 'pinch', d0: Math.hypot(a.x - b.x, a.y - b.y), k0: view.k, v0: { ...view }, m0: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
+    return;
+  }
+  if (pointers.size > 2) return;
+  closeMenu(); commitRename();
+  try { svg.setPointerCapture(e.pointerId); } catch (err) { /* puntatore non più attivo */ }
+  const p = toWorld(e);
+  const h = e.target.closest('[data-handle]'), nEl = e.target.closest('[data-node]'), lEl = e.target.closest('[data-link]');
+
+  // tasto destro o rotella premuta: sposta il foglio (anche se si parte sopra un elemento)
+  if (e.button === 1 || e.button === 2) {
+    e.preventDefault();   // niente scorrimento automatico del browser con la rotella premuta
+    drag = { type: 'pan', sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y, moved: true };
+    stage.classList.add('panning'); return;
+  }
+  if (h) { drag = { type: 'link', from: h.dataset.handle, cur: p }; render(); return; }
+  if (nEl) {
+    const id = nEl.dataset.node;
+    const now = performance.now();
+    const dbl = !!lastTap && lastTap.id === id && now - lastTap.t < 450 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 8;
+    lastTap = dbl ? null : { id, t: now, x: e.clientX, y: e.clientY };
+    if (mode) { handleModeClick(id); return; }
+    if (e.shiftKey || e.ctrlKey || e.metaKey) {
+      sel.has(id) ? sel.delete(id) : sel.add(id);
+      render(true); return;
+    }
+    // dentro una selezione multipla: il trascinamento sposta tutto il gruppo, il semplice clic lascia solo questo elemento
+    const narrow = sel.has(id) && sel.size > 1;
+    if (!sel.has(id)) { sel = new Set([id]); }
+    const movers = [...sel].filter(nodeById);
+    attachedAttrs(movers.filter(i => nodeById(i).kind !== 'attribute' || true)).forEach(i => movers.includes(i) || movers.push(i));
+    drag = { type: 'move', id, dbl, narrow, p, sx: e.clientX, sy: e.clientY, orig: new Map(movers.map(i => { const n = nodeById(i); return [i, { x: n.x, y: n.y }]; })), before: snapshot(), moved: false };
+    render(true); return;
+  }
+  if (lEl) {
+    if (mode) { setMode(null); return; }
+    const lk = linkById(lEl.dataset.link);
+    const id = lk && lk.kind === 'attribute' ? lk.a : lEl.dataset.link;
+    if (e.shiftKey || e.ctrlKey || e.metaKey) sel.has(id) ? sel.delete(id) : sel.add(id);
+    else sel = new Set([id]);
+    render(true); return;
+  }
+  // mouse, tasto sinistro sul vuoto: rettangolo di selezione (Maiusc o Ctrl aggiungono alla selezione)
+  if (e.pointerType === 'mouse') {
+    drag = { type: 'band', p0: p, p1: p, sx: e.clientX, sy: e.clientY, moved: false, add: e.shiftKey || e.ctrlKey || e.metaKey };
+    return;
+  }
+  // touch e penna: un dito sposta il foglio
+  drag = { type: 'pan', sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y, moved: false };
+});
+
+svg.addEventListener('pointermove', e => {
+  if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (!drag) return;
+  if (drag.type === 'pinch') {
+    if (pointers.size < 2) return;
+    const [a, b] = [...pointers.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y), m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    const r = svg.getBoundingClientRect();
+    const k2 = Math.min(3, Math.max(0.2, drag.k0 * d / (drag.d0 || 1)));
+    const wx = (drag.m0.x - r.left - drag.v0.x) / drag.v0.k, wy = (drag.m0.y - r.top - drag.v0.y) / drag.v0.k;
+    view.k = k2; view.x = m.x - r.left - wx * k2; view.y = m.y - r.top - wy * k2;
+    schedule(); return;
+  }
+  const p = toWorld(e);
+  if (drag.type === 'move') {
+    if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 3) return;
+    drag.moved = true;
+    let dx = p.x - drag.p.x, dy = p.y - drag.p.y;
+    if (!e.altKey) { dx = snap(dx); dy = snap(dy); }
+    for (const [id, o] of drag.orig) { const n = nodeById(id); if (n) { n.x = o.x + dx; n.y = o.y + dy; } }
+    schedule();
+  } else if (drag.type === 'pan') {
+    const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+    if (!drag.moved && Math.hypot(dx, dy) < 3) return;
+    drag.moved = true; stage.classList.add('panning');
+    view.x = drag.vx + dx; view.y = drag.vy + dy;
+    schedule();
+  } else if (drag.type === 'band') {
+    if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 3) return;
+    drag.moved = true; drag.p1 = p; schedule();
+  } else if (drag.type === 'link') {
+    drag.cur = p;
+    const t = nodeAt(e.clientX, e.clientY);
+    hoverTarget = t && t !== drag.from ? t : null;
+    schedule();
+  }
+});
+
+function endPointer(e) {
+  pointers.delete(e.pointerId);
+  if (!drag) return;
+  const d = drag;
+  if (d.type === 'pinch') { if (pointers.size === 0) drag = null; return; }
+  drag = null; stage.classList.remove('panning');
+  if (d.type === 'move') {
+    if (d.moved && snapshot() !== d.before) pushUndo(d.before);
+    if (!d.moved && d.narrow && e.type === 'pointerup') sel = new Set([d.id]);
+    render(true);
+    if (!d.moved && d.dbl && e.type === 'pointerup') startRename(d.id);
+  } else if (d.type === 'pan') {
+    if (!d.moved && e.type === 'pointerup') {
+      if (mode) { setMode(null); return; }
+      sel = new Set();
+      render(true);
+    }
+  } else if (d.type === 'band') {
+    if (!d.moved) {
+      // semplice clic sul vuoto: esce dalle modalità o toglie la selezione
+      if (e.type !== 'pointerup') { render(); return; }
+      if (mode) { setMode(null); return; }
+      if (!d.add) sel = new Set();
+      render(true); return;
+    }
+    if (!d.add) sel = new Set();
+    const x1 = Math.min(d.p0.x, d.p1.x), x2 = Math.max(d.p0.x, d.p1.x), y1 = Math.min(d.p0.y, d.p1.y), y2 = Math.max(d.p0.y, d.p1.y);
+    for (const n of doc.nodes) if (n.x >= x1 && n.x <= x2 && n.y >= y1 && n.y <= y2) sel.add(n.id);
+    render(true);
+  } else if (d.type === 'link') {
+    hoverTarget = null;
+    if (e.type !== 'pointerup') { render(); return; }
+    const t = nodeAt(e.clientX, e.clientY);
+    if (t && t !== d.from) connect(d.from, t);
+    else if (!t && d.cur) { render(); openCreateMenu(d.from, d.cur, e.clientX, e.clientY); }
+    else render();
+  }
+}
+svg.addEventListener('pointerup', endPointer);
+svg.addEventListener('pointercancel', endPointer);
+svg.addEventListener('contextmenu', e => e.preventDefault());
+
+svg.addEventListener('dblclick', e => {
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const nEl = el?.closest?.('[data-node]'), lEl = el?.closest?.('[data-link]');
+  if (mode || nEl || lEl || renameState) return;
+  const p = toWorld(e);
+  addFromPalette('entity', { x: p.x, y: p.y });
+});
+
+svg.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r = svg.getBoundingClientRect();
+  if (e.ctrlKey || e.metaKey) {
+    // uno scatto della rotella vale circa il 10%; il pizzico del touchpad manda valori piccoli e resta fluido
+    let dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1);
+    dy = Math.max(-50, Math.min(50, dy));
+    zoomAt(view.k * Math.exp(-dy * 0.002), e.clientX - r.left, e.clientY - r.top);
+  }
+  else { view.x -= e.deltaX; view.y -= e.deltaY; closeMenu(); commitRename(); schedule(); }
+}, { passive: false });
+
+/* menu: rilascio del collegamento sul vuoto */
+function openCreateMenu(fromId, at, cx, cy) {
+  const src = nodeById(fromId); if (!src) return;
+  const opts = {
+    entity: [['attribute', 'Attributo'], ...(isChild(src.id) ? [] : [['key', 'Identificatore']]), ['relationship', 'Associazione'], ['child', 'Entità figlia (generalizzazione)']],
+    relationship: [['entity', 'Entità'], ['attribute', 'Attributo']]
+  }[src.kind];
+  if (!opts) return;
+  closeMenu();
+  menuEl = document.createElement('div');
+  menuEl.className = 'menu';
+  menuEl.setAttribute('role', 'menu');
+  menuEl.innerHTML = `<div class="menu-title">Crea e collega a “${esc(src.name)}”</div>` +
+    opts.map(([v, t]) => `<button role="menuitem" data-v="${v}">${t}</button>`).join('');
+  const r = stage.getBoundingClientRect();
+  menuEl.style.left = Math.min(cx - r.left, r.width - 210) + 'px';
+  menuEl.style.top = Math.min(cy - r.top, r.height - 40 - opts.length * 36) + 'px';
+  stage.appendChild(menuEl);
+  menuEl.querySelector('button').focus();
+  menuEl.addEventListener('click', ev => {
+    const b = ev.target.closest('button'); if (!b) return;
+    const v = b.dataset.v; let created;
+    closeMenu();
+    mutate(() => {
+      if (v === 'attribute' || v === 'key') {
+        created = addNode('attribute', at.x, at.y, { key: v === 'key', card: '' });
+        if (v === 'key') created.name = 'codice';
+        doc.links.push({ id: uid(), kind: 'attribute', a: created.id, b: src.id });
+      } else if (v === 'relationship') {
+        created = addNode('relationship', at.x, at.y);
+        doc.links.push({ id: uid(), kind: 'participation', a: src.id, b: created.id, card: '(0,N)' });
+      } else if (v === 'entity') {
+        created = addNode('entity', at.x, at.y);
+        doc.links.push({ id: uid(), kind: 'participation', a: created.id, b: src.id, card: '(0,N)' });
+      } else if (v === 'child') {
+        created = addNode('entity', at.x, at.y);
+        doc.links.push({ id: uid(), kind: 'isa', a: created.id, b: src.id });
+      }
+      sel = new Set([created.id]);
+    });
+    startRename(created.id, true);
+  });
+}
+function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
+
+/* rinomina sul posto */
+function startRename(id, isNew = false) {
+  commitRename();
+  const n = nodeById(id); if (!n) return;
+  const inp = document.createElement('input');
+  inp.className = 'rename'; inp.value = n.name; inp.spellcheck = false;
+  inp.setAttribute('aria-label', 'Nome elemento');
+  let sx = n.x * view.k + view.x, sy = n.y * view.k + view.y;
+  if (n.kind === 'attribute') {
+    const tw = Math.max(90, textW(n.name, 13) + 30);
+    sx += (labelOnRight(n) ? 1 : -1) * (tw / 2 + 4);
+  }
+  inp.style.left = sx + 'px'; inp.style.top = sy + 'px';
+  inp.style.width = Math.max(130, textW(n.name, 14, 600) + 40) + 'px';
+  stage.appendChild(inp);
+  renameState = { id, inp, before: snapshot(), isNew };
+  inp.focus(); inp.select();
+  inp.addEventListener('keydown', ev => {
+    ev.stopPropagation();
+    if (ev.key === 'Enter') commitRename();
+    else if (ev.key === 'Escape') cancelRename();
+  });
+  inp.addEventListener('input', () => { n.name = inp.value; inp.style.width = Math.max(130, textW(inp.value, 14, 600) + 40) + 'px'; schedule(); });
+  inp.addEventListener('blur', () => setTimeout(commitRename, 0));
+}
+function commitRename() {
+  if (!renameState) return;
+  const { id, inp, before } = renameState; renameState = null;
+  const n = nodeById(id);
+  if (n) {
+    n.name = inp.value.trim() || n.name.trim() || defaultName(n.kind);
+    if (snapshot() !== before) {
+      // la creazione e il nome restano un unico passo annullabile se l'elemento è appena nato
+      pushUndo(before);
+    }
+  }
+  inp.remove(); render(true);
+}
+function cancelRename() {
+  if (!renameState) return;
+  const { inp, before } = renameState; renameState = null;
+  doc = JSON.parse(before); inp.remove(); render(true);
+}
+
+/* trascinamento dalla barra degli elementi */
+document.querySelectorAll('.tile[data-add]').forEach(tile => {
+  tile.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    commitRename(); closeMenu();
+    if (mode) setMode(null);
+    const kind = tile.dataset.add;
+    const start = { x: e.clientX, y: e.clientY };
+    let ghost = null;
+    tile.setPointerCapture(e.pointerId);
+    const move = ev => {
+      if (!ghost && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > 5) {
+        ghost = document.createElement('div'); ghost.className = 'ghost';
+        ghost.innerHTML = tile.querySelector('svg').outerHTML.replace('<svg', '<svg width="60" height="40"');
+        ghost.style.color = 'var(--shape-ink)';
+        document.body.appendChild(ghost);
+      }
+      if (ghost) { ghost.style.left = ev.clientX + 'px'; ghost.style.top = ev.clientY + 'px'; }
+    };
+    const up = ev => {
+      tile.removeEventListener('pointermove', move);
+      tile.removeEventListener('pointerup', up);
+      tile.removeEventListener('pointercancel', up);
+      if (ghost) {
+        ghost.remove();
+        if (ev.type === 'pointercancel') return;
+        const r = svg.getBoundingClientRect();
+        if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) {
+          const target = nodeAt(ev.clientX, ev.clientY);
+          const tn = target ? nodeById(target) : null;
+          const p = { x: (ev.clientX - r.left - view.x) / view.k, y: (ev.clientY - r.top - view.y) / view.k };
+          if ((kind === 'attribute' || kind === 'key') && tn && !(tn.kind === 'attribute' && ownerOf(tn) && false)) addFromPalette(kind, null, tn);
+          else addFromPalette(kind, p);
+        }
+      } else if (ev.type === 'pointerup') {
+        addFromPalette(kind, null);
+      }
+    };
+    tile.addEventListener('pointermove', move);
+    tile.addEventListener('pointerup', up);
+    tile.addEventListener('pointercancel', up);
+  });
+});
+document.querySelectorAll('.tile[data-mode]').forEach(tile => {
+  tile.addEventListener('click', () => setMode(mode === tile.dataset.mode ? null : tile.dataset.mode));
+});
+function setMode(m) {
+  mode = m; modeFrom = null;
+  if (m) {
+    commitRename(); closeMenu();
+    const only = [...sel].map(nodeById).filter(Boolean);
+    if (only.length === 1 && (m === 'link' || only[0].kind === 'entity')) modeFrom = only[0].id;
+  }
+  render(true);
+}
+
+/* ================= pannello proprietà ================= */
+function cardChips(current) {
+  return `<div class="chips">${CARDS.map(c => `<button class="chip ${c === current ? 'on' : ''}" data-card="${c}" type="button">${c}</button>`).join('')}</div>`;
+}
+function renderPanel() {
+  const items = [...sel].map(id => nodeById(id) || linkById(id)).filter(Boolean);
+  panel.classList.toggle('idle', items.length === 0);
+  if (items.length === 0) { panel.innerHTML = helpPanel(); bindPanelCommon(); return; }
+  if (items.length > 1) {
+    panel.innerHTML = `<h2>Selezione</h2><h3>${items.length} elementi selezionati</h3>
+      <p>Trascinali insieme, duplicali con Ctrl+D o eliminali.</p>
+      <div class="actions"><button class="btn" id="p-dup" type="button">Duplica</button><button class="btn danger" id="p-del" type="button">Elimina</button></div>`;
+    $('#p-dup').onclick = duplicateSelection; $('#p-del').onclick = deleteSelection;
+    return;
+  }
+  const it = items[0];
+  if (it.kind === 'entity' || it.kind === 'relationship' || it.kind === 'attribute') panel.innerHTML = nodePanel(it);
+  else panel.innerHTML = linkPanel(it);
+  bindItemPanel(it);
+}
+
+function nodePanel(n) {
+  const kgN = n.kind === 'entity' ? keyGroups()[n.id] : null;
+  const kindLabel = { entity: kgN && kgN.parts.length ? 'Entità debole' : 'Entità', relationship: 'Associazione', attribute: n.key ? 'Identificatore' : 'Attributo' }[n.kind];
+  let h = `<h2>${kindLabel}</h2>
+    <div class="field"><label for="f-name">Nome</label><input id="f-name" class="text" type="text" value="${esc(n.name)}" spellcheck="false"></div>`;
+  if (n.kind === 'entity') {
+    const ka = kgN ? kgN.attrs.length : 0, kp = kgN ? kgN.parts.length : 0;
+    const parentLink = doc.links.find(l => l.kind === 'isa' && l.a === n.id), parent = parentLink ? nodeById(parentLink.b) : null;
+    const children = doc.links.filter(l => l.kind === 'isa' && l.b === n.id);
+    if (children.length) h += coveragePanel(n, children.length);
+    if (parent) h += `<p>Entità figlia di <strong>${esc(parent.name)}</strong>: ne eredita l'identificatore.</p>`;
+    else if (!ka && !kp) h += `<p class="warn-note">Manca l'identificatore. Premi <strong>Identificatore</strong> nella barra a sinistra, oppure seleziona con Ctrl gli attributi che lo formano.</p>`;
+    else h += `<p class="stats">${kp ? `Identificatore esterno (${ka} attribut${ka === 1 ? 'o' : 'i'} + ${kp} associazion${kp === 1 ? 'e' : 'i'})`
+      : ka > 1 ? `Identificatore composto da ${ka} attributi` : 'Identificatore semplice'}</p>`;
+  } else if (n.kind === 'relationship') {
+    const parts = doc.links.filter(l => l.kind === 'participation' && l.b === n.id);
+    h += `<div class="field"><span class="lbl">Cardinalità delle entità partecipanti</span>`;
+    if (!parts.length) h += `<p>Nessuna entità collegata. Trascina il pallino + verso un'entità.</p>`;
+    for (const l of parts) {
+      const e = nodeById(l.a); if (!e) continue;
+      h += `<div class="part-row"><span title="${esc(e.name)}">${esc(e.name)}</span><select class="text mono" data-part="${l.id}">${CARDS.map(c => `<option ${c === l.card ? 'selected' : ''}>${c}</option>`).join('')}</select></div>`;
+    }
+    h += `</div>`;
+  } else {
+    const o = ownerOf(n);
+    if (o && o.kind === 'entity' && !isChild(o.id)) h += `<label class="check"><input type="checkbox" id="f-key" ${n.key ? 'checked' : ''}><span>Identificatore<small>Fa parte dell'identificatore dell'entità. Con più attributi viene disegnato come identificatore composto.</small></span></label>`;
+    h += `<div class="field"><label for="f-acard">Cardinalità</label>
+        <select id="f-acard" class="text">
+          <option value="" ${!n.card ? 'selected' : ''}>(1,1) obbligatorio, non mostrata</option>
+          <option value="(0,1)" ${n.card === '(0,1)' ? 'selected' : ''}>(0,1) opzionale</option>
+          <option value="(1,N)" ${n.card === '(1,N)' ? 'selected' : ''}>(1,N) multivalore</option>
+          <option value="(0,N)" ${n.card === '(0,N)' ? 'selected' : ''}>(0,N) opzionale e multivalore</option>
+        </select></div>
+      <p>${o ? `Appartiene a <strong>${esc(o.name)}</strong>.` : 'Non è collegato a nessun elemento.'}</p>`;
+  }
+  h += `<div class="divider"></div><div class="actions"><button class="btn danger" id="p-del" type="button">Elimina</button></div>`;
+  return h;
+}
+
+function coveragePanel(parent, count) {
+  const total = !!parent.genTotal, excl = parent.genExclusive !== false;
+  return `<div class="field"><span class="lbl">Generalizzazione (${count} figli${count === 1 ? 'a' : 'e'})</span>
+    <div class="seg"><button class="chip ${total ? 'on' : ''}" data-cov="total" type="button">Totale</button><button class="chip ${!total ? 'on' : ''}" data-cov="partial" type="button">Parziale</button></div>
+    <div class="seg"><button class="chip ${excl ? 'on' : ''}" data-cov="excl" type="button">Esclusiva</button><button class="chip ${!excl ? 'on' : ''}" data-cov="overlap" type="button">Sovrapposta</button></div>
+  </div>`;
+}
+
+function linkPanel(l) {
+  const A = nodeById(l.a), B = nodeById(l.b);
+  let h = '';
+  if (l.kind === 'participation') {
+    h += `<h2>Partecipazione</h2><h3>${esc(A?.name)} — ${esc(B?.name)}</h3>
+      <div class="field"><span class="lbl">Cardinalità (min, max)</span>${cardChips(l.card)}</div>
+      <p>Quante volte ogni istanza di <strong>${esc(A?.name)}</strong> partecipa a <strong>${esc(B?.name)}</strong>.</p>
+      ${l.card === '(1,1)' && !isChild(l.a) ? `<label class="check"><input type="checkbox" id="f-ext" ${l.key ? 'checked' : ''}><span>Fa parte dell'identificatore di ${esc(A?.name)}<small>Identificatore esterno, per le entità deboli: ${esc(A?.name)} si identifica anche tramite ${esc(B?.name)}.</small></span></label>` : ''}`;
+  } else if (l.kind === 'attribute') {
+    h += `<h2>Collegamento attributo</h2><h3>${esc(A?.name)} → ${esc(B?.name)}</h3><p>Seleziona l'attributo per cambiarne la cardinalità o renderlo identificatore.</p>`;
+  } else {
+    const count = doc.links.filter(x => x.kind === 'isa' && x.b === l.b).length;
+    h += `<h2>Generalizzazione</h2><h3>${esc(A?.name)} è un ${esc(B?.name)}</h3>${coveragePanel(B, count)}
+      <p>L'etichetta indica la copertura: T totale o P parziale, E esclusiva o S sovrapposta. Con copertura totale la freccia è piena.</p>`;
+  }
+  h += `<div class="divider"></div><div class="actions"><button class="btn danger" id="p-del" type="button">Elimina collegamento</button></div>`;
+  return h;
+}
+
+function helpPanel() {
+  return `<h2>Scorciatoie</h2>
+    <div class="keys">
+      <kbd>E</kbd><span>Entità</span><kbd>S</kbd><span>Associazione</span><kbd>A</kbd><span>Attributo</span>
+      <kbd>I</kbd><span>Identificatore</span><kbd>C</kbd><span>Collega</span><kbd>G</kbd><span>Generalizzazione</span>
+      <kbd>Doppio clic</kbd><span>Rinomina</span><kbd>Canc</kbd><span>Elimina</span>
+      <kbd>Ctrl Z / Y</kbd><span>Annulla / Ripeti</span><kbd>Ctrl D</kbd><span>Duplica</span>
+      <kbd>Ctrl S</kbd><span>Salva file</span><kbd>Alt</kbd><span>Sposta senza griglia</span>
+      <kbd>Trascina</kbd><span>Seleziona più elementi</span>
+      <kbd>Tasto destro</kbd><span>Sposta il foglio (anche rotella premuta)</span>
+      <kbd>Ctrl rotella</kbd><span>Zoom</span>
+      <kbd>P</kbd><span>Mostra / nascondi pannello</span>
+    </div>
+    <div class="divider"></div>
+    <p class="note">Il lavoro resta in questo browser tra una visita e l'altra. Per conservarlo o spostarlo usa <strong>Salva</strong>: crei un file <code>.${EXT}</code> che riapri con <strong>Apri</strong>.</p>`;
+}
+
+function bindPanelCommon() { /* nessun controllo nello stato vuoto */ }
+
+function bindItemPanel(it) {
+  const name = panel.querySelector('#f-name');
+  if (name) {
+    let before = null;
+    name.addEventListener('focus', () => { before = snapshot(); });
+    name.addEventListener('input', () => { it.name = name.value; render(); });
+    name.addEventListener('change', () => {
+      if (!it.name.trim()) { it.name = defaultName(it.kind); name.value = it.name; }
+      if (before && snapshot() !== before) pushUndo(before); before = snapshot(); render();
+    });
+    name.addEventListener('keydown', e => { if (e.key === 'Enter') name.blur(); });
+  }
+  const chk = (id, prop) => { const el = panel.querySelector(id); if (el) el.addEventListener('change', () => mutate(() => { it[prop] = el.checked; })); };
+  chk('#f-key', 'key');
+  const ext = panel.querySelector('#f-ext');
+  if (ext) ext.addEventListener('change', () => {
+    const owner = nodeById(it.a);
+    if (ext.checked) toggleKeys({ owner, items: [it] });
+    else mutate(() => { it.key = false; });
+  });
+  const ac = panel.querySelector('#f-acard');
+  if (ac) ac.addEventListener('change', () => mutate(() => { it.card = ac.value; }));
+  panel.querySelectorAll('select[data-part]').forEach(s => s.addEventListener('change', () => setCard(linkById(s.dataset.part), s.value)));
+  panel.querySelectorAll('[data-card]').forEach(b => b.addEventListener('click', () => setCard(it, b.dataset.card)));
+  panel.querySelectorAll('[data-cov]').forEach(b => b.addEventListener('click', () => {
+    const parent = it.kind === 'isa' ? nodeById(it.b) : it;
+    mutate(() => {
+      const v = b.dataset.cov;
+      if (v === 'total') parent.genTotal = true;
+      if (v === 'partial') parent.genTotal = false;
+      if (v === 'excl') parent.genExclusive = true;
+      if (v === 'overlap') parent.genExclusive = false;
+    });
+  }));
+  const on = (id, fn) => { const el = panel.querySelector(id); if (el) el.addEventListener('click', fn); };
+  on('#p-del', deleteSelection);
+}
+
+/* ================= file: salva, apri, esporta ================= */
+function fileBase() {
+  return (doc.title || 'schema').trim().replace(/[\\/:*?"<>|]+/g, '').replace(/[\s–—-]+/g, '-').slice(0, 60) || 'schema';
+}
+async function offerFile(filename, data, mime) {
+  let dl = null;
+  try { if (window.claude && typeof window.claude.use === 'function') dl = await window.claude.use('downloads'); } catch (e) { dl = null; }
+  if (dl) {
+    try { await dl.save({ filename, data }); toast(`Salvato: ${filename}`); }
+    catch (err) {
+      const code = err && err.code;
+      if (code === 'declined') return;
+      // la pagina pubblicata accetta solo alcune estensioni: il file .ermes diventa .ermes.json
+      if ((code === 'rejected_extension' || code === 'extension_not_enabled') && filename.endsWith('.' + EXT)) {
+        return offerFile(filename + '.json', data, mime);
+      }
+      toast('Il salvataggio non è riuscito in questa vista.');
+    }
+    return;
+  }
+  const blob = data instanceof Blob ? data : new Blob([data], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  toast(`Salvato: ${filename}`);
+}
+function saveFile() {
+  commitRename();
+  const data = JSON.stringify({ ...doc, format: FORMAT, version: 1, savedAt: new Date().toISOString() }, null, 2);
+  offerFile(`${fileBase()}.${EXT}`, data, 'application/json');
+}
+function normalize(o) {
+  if (!o || typeof o !== 'object' || !Array.isArray(o.nodes) || !Array.isArray(o.links)) throw new Error('struttura');
+  if (o.format && o.format !== FORMAT && o.format !== 'modellatore-er') throw new Error('formato');
+  const kinds = new Set(['entity', 'relationship', 'attribute']);
+  const nodes = o.nodes.filter(n => n && kinds.has(n.kind) && n.id).map(n => ({
+    id: String(n.id), kind: n.kind, x: +n.x || 0, y: +n.y || 0, name: String(n.name ?? ''),
+    key: !!n.key, card: n.card ? String(n.card) : '',
+    genTotal: !!n.genTotal, genExclusive: n.genExclusive !== false
+  }));
+  const ids = new Set(nodes.map(n => n.id));
+  const lk = new Set(['participation', 'attribute', 'isa']);
+  const links = o.links.filter(l => l && lk.has(l.kind) && ids.has(String(l.a)) && ids.has(String(l.b))).map(l => {
+    const base = { id: String(l.id || uid()), kind: l.kind, a: String(l.a), b: String(l.b) };
+    if (l.kind !== 'participation') return base;
+    const card = CARDS.includes(l.card) ? l.card : '(0,N)';
+    return { ...base, card, key: !!l.key && card === '(1,1)' };
+  });
+  // le entità figlie ereditano l'identificatore: eventuali identificatori propri vengono ignorati
+  const children = new Set(links.filter(l => l.kind === 'isa').map(l => l.a));
+  const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
+  for (const l of links) {
+    if (l.kind === 'attribute' && children.has(l.b) && byId[l.a]) byId[l.a].key = false;
+    if (l.kind === 'participation' && children.has(l.a)) l.key = false;
+  }
+  return { format: FORMAT, version: 1, title: String(o.title || 'Schema senza titolo'), style: 'atzeni', nodes, links };
+}
+function loadDoc(newDoc, message) {
+  const before = snapshot();
+  doc = newDoc; sel = new Set(); setModeSilently();
+  pushUndo(before);
+  render(true); fitView();
+  toast(message, 'Annulla', undo);
+}
+function setModeSilently() { mode = null; modeFrom = null; }
+$('#file-input').addEventListener('change', e => {
+  const file = e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try { loadDoc(normalize(JSON.parse(reader.result)), `Aperto: ${file.name}`); }
+    catch (err) { toast(`Questo file non è uno schema di ERmes (.${EXT}).`); }
+  };
+  reader.onerror = () => toast('Non riesco a leggere il file.');
+  reader.readAsText(file);
+});
+
+function exportSvgString() {
+  const b = diagramBox(); if (!b) return null;
+  const pad = 36, x = Math.floor(b.x1 - pad), y = Math.floor(b.y1 - pad);
+  const w = Math.ceil(b.x2 - b.x1 + pad * 2), h = Math.ceil(b.y2 - b.y1 + pad * 2);
+  const body = drawDiagram(PRINT, {}).replace(/ data-(node|link)="[^"]*"/g, '');
+  const str = `<svg xmlns="${NS}" width="${w}" height="${h}" viewBox="${x} ${y} ${w} ${h}">`
+    + `<title>${esc(doc.title)}</title><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#ffffff"/>${body}</svg>`;
+  return { str, w, h };
+}
+function exportSvg() {
+  commitRename();
+  const r = exportSvgString(); if (!r) { toast('Lo schema è vuoto: non c\'è niente da esportare.'); return; }
+  offerFile(`${fileBase()}.svg`, '<?xml version="1.0" encoding="UTF-8"?>\n' + r.str, 'image/svg+xml');
+}
+function exportPng() {
+  commitRename();
+  const r = exportSvgString(); if (!r) { toast('Lo schema è vuoto: non c\'è niente da esportare.'); return; }
+  const scale = 2, img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = r.w * scale; c.height = r.h * scale;
+    const g = c.getContext('2d'); g.scale(scale, scale); g.drawImage(img, 0, 0, r.w, r.h);
+    c.toBlob(b => b ? offerFile(`${fileBase()}.png`, b, 'image/png') : toast('Esportazione PNG non riuscita.'), 'image/png');
+  };
+  img.onerror = () => toast('Esportazione PNG non riuscita.');
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(r.str);
+}
+
+/* ================= notifiche ================= */
+let toastTimer = 0;
+function toast(msg, actLabel, actFn) {
+  const t = $('#toast'), b = $('#toast-act');
+  $('#toast-msg').textContent = msg;
+  if (actLabel) { b.textContent = actLabel; b.hidden = false; b.onclick = () => { actFn(); t.classList.remove('show'); }; }
+  else { b.hidden = true; b.onclick = null; }
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), actLabel ? 6000 : 3200);
+}
+
+/* ================= comandi della barra ================= */
+$('#btn-new').onclick = () => { commitRename(); loadDoc(emptyDoc(), 'Nuovo schema vuoto.'); };
+$('#btn-open').onclick = () => $('#file-input').click();
+$('#btn-save').onclick = saveFile;
+$('#btn-png').onclick = exportPng;
+$('#btn-svg').onclick = exportSvg;
+$('#btn-undo').onclick = undo;
+$('#btn-redo').onclick = redo;
+$('#btn-fit').onclick = fitView;
+
+/* tema chiaro / scuro: parte da quello del sistema, la scelta resta salvata in questo browser */
+const THEME_KEY = 'ermes:theme', PANEL_KEY = 'ermes:panel';
+const darkMq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+function currentTheme() {
+  const t = document.documentElement.getAttribute('data-theme');
+  return t === 'dark' || t === 'light' ? t : (darkMq && darkMq.matches ? 'dark' : 'light');
+}
+function syncThemeButton() {
+  const label = currentTheme() === 'dark' ? 'Passa al tema chiaro' : 'Passa al tema scuro';
+  $('#btn-theme').title = label; $('#btn-theme').setAttribute('aria-label', label);
+}
+let themeFadeTimer = 0;
+function setTheme(t) {
+  const root = document.documentElement;
+  // i colori del disegno sono variabili CSS: non serve ridisegnare, così anche lo schema sfuma
+  root.classList.add('theme-fade');
+  void root.offsetWidth;
+  root.setAttribute('data-theme', t);
+  try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* non disponibile */ }
+  syncThemeButton();
+  clearTimeout(themeFadeTimer);
+  themeFadeTimer = setTimeout(() => root.classList.remove('theme-fade'), 600);
+}
+$('#btn-theme').onclick = () => setTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+if (darkMq && darkMq.addEventListener) darkMq.addEventListener('change', syncThemeButton);
+// tema chiaro come predefinito; quello scuro solo se scelto con il pulsante
+let savedTheme = null;
+try { savedTheme = localStorage.getItem(THEME_KEY); } catch (e) { /* non disponibile */ }
+document.documentElement.setAttribute('data-theme', savedTheme === 'dark' ? 'dark' : 'light');
+syncThemeButton();
+
+/* pannello delle proprietà a scomparsa */
+function setPanel(open, save = true) {
+  $('.main').classList.toggle('panel-off', !open);
+  const b = $('#btn-panel');
+  b.setAttribute('aria-pressed', String(open));
+  b.title = open ? 'Nascondi il pannello delle proprietà (P)' : 'Mostra il pannello delle proprietà (P)';
+  if (save) { try { localStorage.setItem(PANEL_KEY, open ? 'open' : 'closed'); } catch (e) { /* non disponibile */ } }
+  render();
+}
+const panelOpen = () => !$('.main').classList.contains('panel-off');
+$('#btn-panel').onclick = () => setPanel(!panelOpen());
+try { if (localStorage.getItem(PANEL_KEY) === 'closed') setPanel(false, false); } catch (e) { /* non disponibile */ }
+const zoomBtn = factor => { const r = stage.getBoundingClientRect(); zoomAt(view.k * factor, r.width / 2, r.height / 2); };
+$('#btn-zoom-in').onclick = () => zoomBtn(1.2);
+$('#btn-zoom-out').onclick = () => zoomBtn(1 / 1.2);
+(() => {
+  const t = $('#doc-title'); let before = null;
+  t.addEventListener('focus', () => { before = snapshot(); });
+  t.addEventListener('input', () => { doc.title = t.value; });
+  t.addEventListener('change', () => {
+    doc.title = t.value.trim() || 'Schema senza titolo'; t.value = doc.title;
+    if (before && snapshot() !== before) pushUndo(before); before = snapshot(); render();
+  });
+  t.addEventListener('keydown', e => { if (e.key === 'Enter') t.blur(); });
+})();
+
+/* ================= tastiera ================= */
+document.addEventListener('keydown', e => {
+  const typing = e.target.closest && e.target.closest('input, select, textarea');
+  const ctrl = e.ctrlKey || e.metaKey, key = e.key.toLowerCase();
+  if (ctrl && key === 's') { e.preventDefault(); saveFile(); return; }
+  if (ctrl && key === 'o') { e.preventDefault(); $('#file-input').click(); return; }
+  if (typing) return;
+  if (ctrl && key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+  if (ctrl && (key === 'y' || (key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
+  if (ctrl && key === 'd') { e.preventDefault(); duplicateSelection(); return; }
+  if (ctrl && key === 'a') { e.preventDefault(); sel = new Set(doc.nodes.map(n => n.id)); render(true); return; }
+  if (ctrl && key === '0') { e.preventDefault(); fitView(); return; }
+  if (ctrl) return;
+  if (e.key === 'Escape') { closeMenu(); if (mode) setMode(null); else { sel = new Set(); render(true); } return; }
+  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelection(); return; }
+  if ((e.key === 'Enter' || e.key === 'F2') && sel.size === 1) { const id = [...sel][0]; if (nodeById(id)) { e.preventDefault(); startRename(id); } return; }
+  if (e.key.startsWith('Arrow') && sel.size) {
+    e.preventDefault();
+    const step = e.shiftKey ? 1 : GRID, dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0, dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+    const ids = [...sel].filter(nodeById); const all = new Set([...ids, ...attachedAttrs(ids)]);
+    mutate(() => { all.forEach(id => { const n = nodeById(id); n.x += dx; n.y += dy; }); }, false);
+    return;
+  }
+  const map = { e: 'entity', s: 'relationship', a: 'attribute', i: 'key' };
+  if (map[key]) { e.preventDefault(); addFromPalette(map[key], null); return; }
+  if (key === 'c') { setMode(mode === 'link' ? null : 'link'); return; }
+  if (key === 'g') { setMode(mode === 'isa' ? null : 'isa'); return; }
+  if (key === 'p') { setPanel(!panelOpen()); return; }
+  if (key === '+' || key === '=') { zoomBtn(1.2); return; }
+  if (key === '-') { zoomBtn(1 / 1.2); return; }
+});
+window.addEventListener('resize', () => { closeMenu(); commitRename(); render(); });
+
+/* ================= avvio ================= */
+let restored = null;
+try {
+  const raw = localStorage.getItem(STORE_KEY) || localStorage.getItem(OLD_STORE_KEY);
+  if (raw) restored = normalize(JSON.parse(raw));
+} catch (e) { restored = null; }
+doc = restored || emptyDoc();
+render(true);
+requestAnimationFrame(fitView);
+})();
+</script>
+
+</body>
+</html>
