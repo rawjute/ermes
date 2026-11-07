@@ -2,7 +2,9 @@
 
 Editor minimale per disegnare schemi **Entità/Relazione** nel browser, con la notazione dei libri di testo italiani (attributi a pallino).
 
-È un'unica pagina HTML: non richiede installazione, server o account. Basta aprire `index.html` con un browser moderno.
+**Provalo online: https://rawjute.github.io/ermes/**
+
+È un'unica pagina HTML: non richiede installazione, server o account. Puoi usarlo dal link qui sopra, oppure scaricare `index.html` e aprirlo con un browser moderno, anche senza connessione.
 
 ## Cosa si può modellare
 
