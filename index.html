@@ -264,12 +264,12 @@ kbd {
   <nav class="tools" aria-label="Comandi">
     <div class="group">
       <button class="btn" id="btn-new" title="Nuovo schema">Nuovo</button>
-      <button class="btn" id="btn-open" title="Apri un file .ermes (Ctrl+O)">Apri</button>
+      <button class="btn" id="btn-open" title="Apri un file .ermes o un'immagine PNG esportata da ERmes (Ctrl+O)">Apri</button>
       <button class="btn primary" id="btn-save" title="Salva il lavoro come file .ermes (Ctrl+S)">Salva</button>
     </div>
     <div class="group">
       <span class="group-label">Esporta</span>
-      <button class="btn" id="btn-png" title="Esporta immagine PNG">PNG</button>
+      <button class="btn" id="btn-png" title="Esporta immagine PNG: contiene anche lo schema e si può riaprire con Apri">PNG</button>
       <button class="btn" id="btn-svg" title="Esporta immagine vettoriale SVG">SVG</button>
     </div>
     <div class="group">
@@ -300,7 +300,7 @@ kbd {
         <svg viewBox="0 0 16 16"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 3v10" stroke="currentColor" stroke-width="1.5"/><rect class="ic-fill" x="10" y="3" width="3.6" height="9.6" fill="currentColor" opacity=".35"/></svg>
       </button>
   </div>
-  <input type="file" id="file-input" accept=".ermes,.json,application/json" hidden>
+  <input type="file" id="file-input" accept=".ermes,.json,.png,application/json,image/png" hidden>
 </header>
 
 <div class="main">
@@ -1466,7 +1466,7 @@ function helpPanel() {
       <kbd>P</kbd><span>Mostra / nascondi pannello</span>
     </div>
     <div class="divider"></div>
-    <p class="note">Il lavoro resta in questo browser tra una visita e l'altra. Per conservarlo o spostarlo usa <strong>Salva</strong>: crei un file <code>.${EXT}</code> che riapri con <strong>Apri</strong>.</p>`;
+    <p class="note">Il lavoro resta in questo browser tra una visita e l'altra. Per conservarlo o spostarlo usa <strong>Salva</strong>: crei un file <code>.${EXT}</code> che riapri con <strong>Apri</strong>. Anche il <strong>PNG</strong> esportato contiene lo schema e si può riaprire, finché l'immagine non viene modificata o compressa.</p>`;
 }
 
 function bindPanelCommon() { /* nessun controllo nello stato vuoto */ }
@@ -1536,10 +1536,77 @@ async function offerFile(filename, data, mime) {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
   toast(`Salvato: ${filename}`);
 }
+function schemaJson(pretty) {
+  return JSON.stringify({ ...doc, format: FORMAT, version: 1, savedAt: new Date().toISOString() }, null, pretty ? 2 : 0);
+}
 function saveFile() {
   commitRename();
-  const data = JSON.stringify({ ...doc, format: FORMAT, version: 1, savedAt: new Date().toISOString() }, null, 2);
-  offerFile(`${fileBase()}.${EXT}`, data, 'application/json');
+  offerFile(`${fileBase()}.${EXT}`, schemaJson(true), 'application/json');
+}
+
+/* ================= schema dentro il PNG =================
+   Il PNG è una sequenza di blocchi. Aggiungiamo un blocco di testo iTXt con chiave "ermes"
+   che contiene il JSON dello schema: i visualizzatori lo ignorano, ERmes lo rilegge con Apri.
+   Si perde se l'immagine viene ricodificata (copia e incolla, app che comprimono, programmi di grafica). */
+const PNG_SIG = [137, 80, 78, 71, 13, 10, 26, 10];
+const PNG_KEY = 'ermes';
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t;
+})();
+function crc32(bytes) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function isPng(buf) { return buf.length > 8 && PNG_SIG.every((v, i) => buf[i] === v); }
+function pngChunks(buf) {
+  const out = [], dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  let p = 8;
+  while (p + 12 <= buf.length) {
+    const len = dv.getUint32(p), type = String.fromCharCode(...buf.subarray(p + 4, p + 8));
+    out.push({ pos: p, len, type, data: buf.subarray(p + 8, p + 8 + len) });
+    if (type === 'IEND') break;
+    p += 12 + len;
+  }
+  return out;
+}
+function iTXtChunk(keyword, text) {
+  const enc = new TextEncoder(), kw = enc.encode(keyword), tx = enc.encode(text);
+  // parola chiave \0, non compresso (0), metodo (0), lingua \0, parola chiave tradotta \0, testo UTF-8
+  const data = new Uint8Array(kw.length + 5 + tx.length);
+  data.set(kw, 0); data.set(tx, kw.length + 5);
+  const chunk = new Uint8Array(12 + data.length), dv = new DataView(chunk.buffer);
+  dv.setUint32(0, data.length);
+  chunk.set(enc.encode('iTXt'), 4); chunk.set(data, 8);
+  dv.setUint32(8 + data.length, crc32(chunk.subarray(4, 8 + data.length)));
+  return chunk;
+}
+async function pngWithSchema(blob, json) {
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  const iend = pngChunks(buf).find(c => c.type === 'IEND');
+  if (!isPng(buf) || !iend) return blob;
+  const extra = iTXtChunk(PNG_KEY, json);
+  const out = new Uint8Array(buf.length + extra.length);
+  out.set(buf.subarray(0, iend.pos), 0);
+  out.set(extra, iend.pos);
+  out.set(buf.subarray(iend.pos), iend.pos + extra.length);
+  return new Blob([out], { type: 'image/png' });
+}
+function schemaFromPng(buf) {
+  const latin1 = b => String.fromCharCode(...b);
+  for (const c of pngChunks(buf)) {
+    if (c.type !== 'iTXt' && c.type !== 'tEXt') continue;
+    const z = c.data.indexOf(0);
+    if (z < 0 || latin1(c.data.subarray(0, z)) !== PNG_KEY) continue;
+    if (c.type === 'tEXt') return latin1(c.data.subarray(z + 1));
+    if (c.data[z + 1] !== 0) return null;             // testo compresso: ERmes non lo scrive mai
+    let q = c.data.indexOf(0, z + 3) + 1;             // salta la lingua
+    q = c.data.indexOf(0, q) + 1;                     // e la parola chiave tradotta
+    return new TextDecoder().decode(c.data.subarray(q));
+  }
+  return null;
 }
 function normalize(o) {
   if (!o || typeof o !== 'object' || !Array.isArray(o.nodes) || !Array.isArray(o.links)) throw new Error('struttura');
@@ -1580,11 +1647,22 @@ $('#file-input').addEventListener('change', e => {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
-    try { loadDoc(normalize(JSON.parse(reader.result)), `Aperto: ${file.name}`); }
-    catch (err) { toast(`Questo file non è uno schema di ERmes (.${EXT}).`); }
+    const buf = new Uint8Array(reader.result);
+    if (isPng(buf)) {
+      const json = schemaFromPng(buf);
+      if (!json) {
+        toast("Questa immagine non contiene uno schema di ERmes. Forse è stata copiata, compressa o modificata da un altro programma: se ce l'hai, apri il file .ermes.");
+        return;
+      }
+      try { loadDoc(normalize(JSON.parse(json)), `Aperto dall'immagine: ${file.name}`); }
+      catch (err) { toast("Lo schema dentro questa immagine è danneggiato: se ce l'hai, apri il file .ermes."); }
+      return;
+    }
+    try { loadDoc(normalize(JSON.parse(new TextDecoder().decode(buf))), `Aperto: ${file.name}`); }
+    catch (err) { toast(`Questo file non è uno schema di ERmes: apri un file .${EXT} o un'immagine PNG esportata da ERmes.`); }
   };
   reader.onerror = () => toast('Non riesco a leggere il file.');
-  reader.readAsText(file);
+  reader.readAsArrayBuffer(file);
 });
 
 function exportSvgString() {
@@ -1609,7 +1687,11 @@ function exportPng() {
     const c = document.createElement('canvas');
     c.width = r.w * scale; c.height = r.h * scale;
     const g = c.getContext('2d'); g.scale(scale, scale); g.drawImage(img, 0, 0, r.w, r.h);
-    c.toBlob(b => b ? offerFile(`${fileBase()}.png`, b, 'image/png') : toast('Esportazione PNG non riuscita.'), 'image/png');
+    const json = schemaJson(false);
+    c.toBlob(async b => {
+      if (!b) { toast('Esportazione PNG non riuscita.'); return; }
+      offerFile(`${fileBase()}.png`, await pngWithSchema(b, json), 'image/png');
+    }, 'image/png');
   };
   img.onerror = () => toast('Esportazione PNG non riuscita.');
   img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(r.str);

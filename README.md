@@ -45,6 +45,8 @@ Le entità che non hanno ancora un identificatore sono evidenziate in arancione,
 
 - **Salva** crea un file `.ermes`, cioè JSON, che si riapre con **Apri**.
 - **PNG** e **SVG** esportano l'immagine dello schema su sfondo bianco.
+- Il **PNG** contiene anche lo schema, in un blocco di testo `iTXt` con chiave `ermes` che i visualizzatori ignorano. Si può quindi riaprire con **Apri** come un file `.ermes`.
+  Lo schema però si perde se l'immagine viene ricodificata: copia e incolla, app che comprimono le immagini (per esempio WhatsApp), ritagli o salvataggi da un programma di grafica. Per un archivio sicuro conviene tenere anche il file `.ermes`.
 - Il lavoro in corso resta anche nel browser, tra una visita e l'altra.
 
 Il tema chiaro è quello predefinito; quello scuro si attiva con il pulsante in alto a destra.
