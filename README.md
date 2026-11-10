@@ -25,6 +25,7 @@ Le entità che non hanno ancora un identificatore sono evidenziate in arancione,
 - Con un'entità o un'associazione selezionata compaiono **Attributo** e **Identificatore**.
 - Seleziona con Ctrl più attributi della stessa entità, ed eventualmente il collegamento all'associazione, poi premi **Identificatore** per formare un identificatore composto o esterno.
 - Doppio clic su un elemento per rinominarlo; doppio clic sul foglio vuoto per creare un'entità.
+- Nella scheda **Note** del pannello di destra (tasto `N`) puoi scrivere le ipotesi aggiuntive e le note sullo schema: si salvano insieme allo schema.
 
 ### Mouse e tastiera
 
@@ -39,7 +40,8 @@ Le entità che non hanno ancora un identificatore sono evidenziate in arancione,
 | `Ctrl+Z` / `Ctrl+Y` | Annulla / Ripeti |
 | `Ctrl+D` | Duplica |
 | `Ctrl+S` / `Ctrl+O` | Salva / Apri |
-| `P` | Mostra o nasconde il pannello delle proprietà |
+| `P` | Mostra o nasconde il pannello laterale |
+| `N` | Apre le note e ipotesi |
 
 ## File
 

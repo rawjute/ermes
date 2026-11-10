@@ -167,9 +167,32 @@ select.compact { height: 32px; border: 1px solid var(--rule); border-radius: 6px
 /* ---------- pannello proprietà ---------- */
 .panel {
   background: var(--surface); border-left: 1px solid var(--rule); overflow-y: auto; min-width: 0;
+  display: flex; flex-direction: column;
+}
+.panel-tabs {
+  position: sticky; top: 0; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
+  padding: 8px 12px 0; padding-right: max(12px, env(safe-area-inset-right, 0px));
+  background: var(--surface); border-bottom: 1px solid var(--rule); flex: none;
+}
+.panel-tab {
+  border: 0; background: transparent; padding: 8px 6px 9px; cursor: pointer; font-size: 13px; font-weight: 500;
+  color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; display: inline-flex; justify-content: center; align-items: center; gap: 6px;
+}
+.panel-tab:hover { color: var(--ink); }
+.panel-tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.panel-tab .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.panel-body {
   padding: 14px 16px 18px; padding-right: max(16px, env(safe-area-inset-right, 0px));
   display: flex; flex-direction: column; gap: 14px;
 }
+#panel-notes { flex: 1 1 auto; min-height: 0; gap: 8px; }
+#f-notes {
+  flex: 1 1 auto; min-height: 220px; width: 100%; box-sizing: border-box; resize: none;
+  border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; background: var(--surface);
+  font: 13.5px/1.55 var(--font-ui); color: var(--ink);
+}
+#f-notes:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+#f-notes::placeholder { color: var(--muted); }
 .panel h2 { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .panel h3 { margin: 0; font-size: 15px; font-weight: 600; text-wrap: balance; overflow-wrap: anywhere; }
 .panel p { margin: 0; color: var(--muted); font-size: 13px; }
@@ -238,8 +261,10 @@ kbd {
   .panel {
     grid-row: 1; grid-column: 1; align-self: end; position: relative; max-height: 44vh; z-index: 4; border-left: 0;
     border-top: 1px solid var(--rule); box-shadow: var(--shadow); border-radius: 12px 12px 0 0;
-    padding-left: max(16px, env(safe-area-inset-left, 0px));
   }
+  .panel-body { padding-left: max(16px, env(safe-area-inset-left, 0px)); }
+  .panel-tabs { padding-left: max(12px, env(safe-area-inset-left, 0px)); border-radius: 12px 12px 0 0; }
+  #f-notes { min-height: 140px; }
   .panel.idle { display: none; }
   .group-label { display: none; }
   .title-input { width: 9em; }
@@ -340,7 +365,18 @@ kbd {
     <div class="hint" id="hint" hidden></div>
   </section>
 
-  <aside class="panel" id="panel" aria-label="Proprietà"></aside>
+  <aside class="panel" id="panel" aria-label="Pannello laterale">
+    <div class="panel-tabs" role="tablist" aria-label="Contenuto del pannello">
+      <button class="panel-tab" id="tab-props" role="tab" type="button" aria-controls="panel-props" aria-selected="true">Proprietà</button>
+      <button class="panel-tab" id="tab-notes" role="tab" type="button" aria-controls="panel-notes" aria-selected="false" title="Note e ipotesi (N)">Note<span class="dot" id="notes-dot" hidden></span></button>
+    </div>
+    <div class="panel-body" id="panel-props" role="tabpanel" aria-labelledby="tab-props"></div>
+    <div class="panel-body" id="panel-notes" role="tabpanel" aria-labelledby="tab-notes" hidden>
+      <label class="lbl" for="f-notes" style="font-size:12px;color:var(--muted);font-weight:500">Note e ipotesi aggiuntive</label>
+      <textarea id="f-notes" spellcheck="true" placeholder="Scrivi qui le ipotesi aggiuntive e le note sullo schema.&#10;&#10;Esempio: si suppone che ogni stanza appartenga a un solo albergo."></textarea>
+      <p>Le note si salvano con lo schema, nel file .ermes e nel PNG esportato.</p>
+    </div>
+  </aside>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-msg"></span><button id="toast-act" hidden></button></div>
@@ -363,6 +399,8 @@ const CARDS = ['(0,1)', '(1,1)', '(0,N)', '(1,N)'];
 const $ = s => document.querySelector(s);
 const stage = $('#stage'), svg = $('#canvas'), viewportG = $('#viewport'), worldG = $('#world'), overlayG = $('#overlay');
 const panel = $('#panel'), hintEl = $('#hint');
+const propsEl = $('#panel-props'), notesEl = $('#f-notes');
+let panelTab = 'props';   // 'props' | 'notes'
 
 // warn: evidenzia le entità senza identificatore, solo a schermo (mai nelle immagini esportate)
 const SCREEN = { ink: 'var(--shape-ink)', fill: 'var(--shape)', bg: 'var(--canvas)', sel: 'var(--select)', hit: true, warn: 'var(--warn)', warnInk: 'var(--warn-ink)' };
@@ -382,7 +420,7 @@ let lastTap = null;       // per riconoscere il doppio clic anche se il disegno 
 const pointers = new Map();
 
 function emptyDoc() {
-  return { format: FORMAT, version: 1, title: 'Schema senza titolo', style: 'atzeni', nodes: [], links: [] };
+  return { format: FORMAT, version: 1, title: 'Schema senza titolo', style: 'atzeni', notes: '', nodes: [], links: [] };
 }
 const uid = () => Math.random().toString(36).slice(2, 10);
 const f = v => Math.round(v * 10) / 10;
@@ -732,6 +770,7 @@ function render(withPanel = false) {
   $('#btn-redo').disabled = !redoStack.length;
   if (document.activeElement !== $('#doc-title')) $('#doc-title').value = doc.title;
   updatePalette();
+  syncNotes();
   document.querySelectorAll('.tile[data-mode]').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
   stage.classList.toggle('connecting', !!mode || (drag && drag.type === 'link'));
   updateHint();
@@ -850,6 +889,7 @@ function pushUndo(before) {
   persist();
 }
 function mutate(fn, panelToo = true) {
+  commitNotes();
   const before = snapshot();
   fn();
   if (snapshot() !== before) pushUndo(before);
@@ -860,11 +900,13 @@ function cleanSel() {
   if (modeFrom && !nodeById(modeFrom)) modeFrom = null;
 }
 function undo() {
+  commitNotes();
   if (!undoStack.length) return;
   redoStack.push(snapshot()); doc = JSON.parse(undoStack.pop());
   cleanSel(); persist(); render(true);
 }
 function redo() {
+  commitNotes();
   if (!redoStack.length) return;
   undoStack.push(snapshot()); doc = JSON.parse(redoStack.pop());
   cleanSel(); persist(); render(true);
@@ -1369,20 +1411,52 @@ function setMode(m) {
 function cardChips(current) {
   return `<div class="chips">${CARDS.map(c => `<button class="chip ${c === current ? 'on' : ''}" data-card="${c}" type="button">${c}</button>`).join('')}</div>`;
 }
+/* schede del pannello laterale: proprietà dell'elemento selezionato oppure note dello schema */
+function setPanelTab(tab, focus = false) {
+  panelTab = tab;
+  $('#tab-props').setAttribute('aria-selected', String(tab === 'props'));
+  $('#tab-notes').setAttribute('aria-selected', String(tab === 'notes'));
+  propsEl.hidden = tab !== 'props';
+  $('#panel-notes').hidden = tab !== 'notes';
+  try { localStorage.setItem('ermes:tab', tab); } catch (e) { /* non disponibile */ }
+  renderPanel();
+  if (focus && tab === 'notes') notesEl.focus();
+}
+$('#tab-props').onclick = () => setPanelTab('props');
+$('#tab-notes').onclick = () => setPanelTab('notes', true);
+/* Le note entrano nello storico come un unico passo: si chiude quando si esce dal riquadro,
+   oppure prima di qualsiasi altra modifica o di Annulla, così una scrittura non si mescola con il resto. */
+let notesBefore = null;
+function commitNotes() {
+  if (notesBefore && snapshot() !== notesBefore) pushUndo(notesBefore);
+  notesBefore = null;
+}
+notesEl.addEventListener('input', () => {
+  if (!notesBefore) notesBefore = snapshot();   // stato prima della prima battuta
+  doc.notes = notesEl.value; persist(); $('#notes-dot').hidden = !doc.notes.trim();
+});
+notesEl.addEventListener('blur', () => { commitNotes(); render(); });
+notesEl.addEventListener('keydown', e => { if (e.key === 'Escape') notesEl.blur(); });
+function syncNotes() {
+  if (document.activeElement !== notesEl && notesEl.value !== (doc.notes || '')) notesEl.value = doc.notes || '';
+  $('#notes-dot').hidden = !(doc.notes || '').trim();
+}
+
 function renderPanel() {
   const items = [...sel].map(id => nodeById(id) || linkById(id)).filter(Boolean);
-  panel.classList.toggle('idle', items.length === 0);
-  if (items.length === 0) { panel.innerHTML = helpPanel(); bindPanelCommon(); return; }
+  // su schermi stretti il pannello compare solo se c'è qualcosa da mostrare
+  panel.classList.toggle('idle', items.length === 0 && panelTab === 'props');
+  if (items.length === 0) { propsEl.innerHTML = helpPanel(); bindPanelCommon(); return; }
   if (items.length > 1) {
-    panel.innerHTML = `<h2>Selezione</h2><h3>${items.length} elementi selezionati</h3>
+    propsEl.innerHTML = `<h2>Selezione</h2><h3>${items.length} elementi selezionati</h3>
       <p>Trascinali insieme, duplicali con Ctrl+D o eliminali.</p>
       <div class="actions"><button class="btn" id="p-dup" type="button">Duplica</button><button class="btn danger" id="p-del" type="button">Elimina</button></div>`;
     $('#p-dup').onclick = duplicateSelection; $('#p-del').onclick = deleteSelection;
     return;
   }
   const it = items[0];
-  if (it.kind === 'entity' || it.kind === 'relationship' || it.kind === 'attribute') panel.innerHTML = nodePanel(it);
-  else panel.innerHTML = linkPanel(it);
+  if (it.kind === 'entity' || it.kind === 'relationship' || it.kind === 'attribute') propsEl.innerHTML = nodePanel(it);
+  else propsEl.innerHTML = linkPanel(it);
   bindItemPanel(it);
 }
 
@@ -1464,6 +1538,7 @@ function helpPanel() {
       <kbd>Tasto destro</kbd><span>Sposta il foglio (anche rotella premuta)</span>
       <kbd>Ctrl rotella</kbd><span>Zoom</span>
       <kbd>P</kbd><span>Mostra / nascondi pannello</span>
+      <kbd>N</kbd><span>Note e ipotesi</span>
     </div>
     <div class="divider"></div>
     <p class="note">Il lavoro resta in questo browser tra una visita e l'altra. Per conservarlo o spostarlo usa <strong>Salva</strong>: crei un file <code>.${EXT}</code> che riapri con <strong>Apri</strong>. Anche il <strong>PNG</strong> esportato contiene lo schema e si può riaprire, finché l'immagine non viene modificata o compressa.</p>`;
@@ -1632,9 +1707,10 @@ function normalize(o) {
     if (l.kind === 'attribute' && children.has(l.b) && byId[l.a]) byId[l.a].key = false;
     if (l.kind === 'participation' && children.has(l.a)) l.key = false;
   }
-  return { format: FORMAT, version: 1, title: String(o.title || 'Schema senza titolo'), style: 'atzeni', nodes, links };
+  return { format: FORMAT, version: 1, title: String(o.title || 'Schema senza titolo'), style: 'atzeni', notes: typeof o.notes === 'string' ? o.notes : '', nodes, links };
 }
 function loadDoc(newDoc, message) {
+  commitNotes();
   const before = snapshot();
   doc = newDoc; sel = new Set(); setModeSilently();
   pushUndo(before);
@@ -1804,6 +1880,7 @@ document.addEventListener('keydown', e => {
   if (key === 'c') { setMode(mode === 'link' ? null : 'link'); return; }
   if (key === 'g') { setMode(mode === 'isa' ? null : 'isa'); return; }
   if (key === 'p') { setPanel(!panelOpen()); return; }
+  if (key === 'n') { e.preventDefault(); if (!panelOpen()) setPanel(true); setPanelTab('notes', true); return; }
   if (key === '+' || key === '=') { zoomBtn(1.2); return; }
   if (key === '-') { zoomBtn(1 / 1.2); return; }
 });
@@ -1817,6 +1894,7 @@ try {
 } catch (e) { restored = null; }
 doc = restored || emptyDoc();
 render(true);
+try { if (localStorage.getItem('ermes:tab') === 'notes') setPanelTab('notes'); } catch (e) { /* non disponibile */ }
 requestAnimationFrame(fitView);
 })();
 </script>
